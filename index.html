@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>채팅 - privseai</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+  <!-- Login Screen -->
+  <div id="login-screen" class="screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <div class="logo-icon">💬</div>
+        <h1 id="welcome-title">privseai 채팅</h1>
+        <p class="login-subtitle" id="welcome-sub">Matrix 기반 채팅 서비스</p>
+      </div>
+
+      <div id="bio-section">
+        <button id="bio-btn" class="bio-btn">
+          <span class="bio-icon">🔒</span> 지문으로 시작하기
+        </button>
+        <p id="bio-status" class="bio-status"></p>
+        <a href="#" id="show-password-login" class="bio-alt-link">비밀번호로 로그인</a>
+      </div>
+
+      <div id="password-fallback" class="hidden">
+        <div class="password-divider"><span>또는 비밀번호 로그인</span></div>
+        <form id="login-form" autocomplete="off">
+          <div class="input-group">
+            <label for="username">아이디</label>
+            <input type="text" id="username" placeholder="Matrix 사용자 이름" required autofocus>
+          </div>
+          <div class="input-group">
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" placeholder="비밀번호" required>
+          </div>
+          <button type="submit" id="login-btn">로그인</button>
+          <p id="login-error" class="error-msg"></p>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Chat Screen -->
+  <div id="chat-screen" class="screen hidden">
+    <!-- Left Sidebar -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <h2>채팅</h2>
+        <button id="logout-btn" class="icon-btn" title="로그아웃">⏻</button>
+      </div>
+      <div class="sidebar-user">
+        <div class="my-avatar" id="my-avatar">👤</div>
+        <div class="my-info">
+          <span class="my-name" id="my-name">User</span>
+          <span class="my-id" id="my-id">@id:server</span>
+        </div>
+      </div>
+      <div id="room-list" class="room-list"></div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main id="chat-area">
+      <div id="room-placeholder" class="room-placeholder">
+        <div class="placeholder-icon">💬</div>
+        <p>대화방을 선택하세요</p>
+      </div>
+      <div id="room-view" class="hidden">
+        <div id="room-header" class="room-header">
+          <div class="room-header-info">
+            <div class="room-avatar" id="room-avatar">#</div>
+            <div>
+              <h3 id="room-name">방 이름</h3>
+              <span class="room-meta" id="room-meta">0명 참여 중</span>
+            </div>
+          </div>
+        </div>
+        <div id="message-list" class="message-list"></div>
+        <div id="typing-indicator" class="typing-indicator hidden">상대방이 입력 중...</div>
+        <div id="message-form" class="message-form">
+          <textarea id="message-input" rows="1" placeholder="메시지 입력..." maxlength="10000"></textarea>
+          <button id="send-btn" class="send-btn" disabled>전송</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

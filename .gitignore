@@ -1,0 +1,5 @@
+# No build artifacts for this static site
+.DS_Store
+*.swp
+*.swo
+*~
