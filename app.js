@@ -1,115 +1,13 @@
 /* ===========================================
-   privseai 채팅 - Matrix Passkey Client
+   privseai 채팅 - Matrix Chat Client
    =========================================== */
-
-// ============ Credential Store (IndexedDB) ============
-const DB_NAME = 'privseai-chat';
-const DB_STORE = 'credentials';
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, 1);
-    req.onupgradeneeded = (e) => {
-      e.target.result.createObjectStore(DB_STORE, { keyPath: 'credentialId' });
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbStore(credentialId, data) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readwrite');
-    tx.objectStore(DB_STORE).put({ credentialId, ...data });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
-}
-
-async function dbGetAll() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readonly');
-    const req = tx.objectStore(DB_STORE).getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-async function dbGet(credentialId) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(DB_STORE, 'readonly');
-    const req = tx.objectStore(DB_STORE).get(credentialId);
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-// ============ WebAuthn Helpers ============
-function bufToBase64(buf) {
-  return btoa(String.fromCharCode(...new Uint8Array(buf)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-function base64ToBuf(str) {
-  return Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-}
-
-async function createPasskey(username) {
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const userId = crypto.getRandomValues(new Uint8Array(16));
-
-  const credential = await navigator.credentials.create({
-    publicKey: {
-      challenge,
-      rp: { id: window.location.hostname, name: 'Privseai Chat' },
-      user: {
-        id: userId,
-        name: username,
-        displayName: username,
-      },
-      pubKeyCredParams: [
-        { type: 'public-key', alg: -7 },
-        { type: 'public-key', alg: -257 },
-      ],
-      authenticatorSelection: {
-        authenticatorAttachment: 'platform',
-        userVerification: 'required',
-        residentKey: 'required',
-      },
-    },
-  });
-  return credential;
-}
-
-async function getPasskey() {
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-  const credential = await navigator.credentials.get({
-    publicKey: {
-      challenge,
-      rpId: window.location.hostname,
-      userVerification: 'required',
-    },
-  });
-  return credential;
-}
-
-function generateUsername() {
-  const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
-  let r = '';
-  const a = crypto.getRandomValues(new Uint8Array(8));
-  for (let i = 0; i < 8; i++) r += c[a[i] % c.length];
-  return `user_${r}`;
-}
 
 // ============ State ============
 const state = {
   accessToken: null,
   userId: null,
   deviceId: null,
-  homeServer: window.location.origin,
+  homeServer: 'https://chat.privseai.com',
   since: null,
   rooms: {},
   members: {},
@@ -119,27 +17,22 @@ const state = {
   syncAbort: null,
   loggedIn: false,
   txnCounter: 0,
+  isGuest: false,
+  guestId: null,
 };
 
 // ============ DOM refs ============
 const $ = (s) => document.querySelector(s);
 const loginScreen = $('#login-screen');
 const chatScreen = $('#chat-screen');
-
-const bioSection = $('#bio-section');
-const bioBtn = $('#bio-btn');
-const bioStatus = $('#bio-status');
 const welcomeTitle = $('#welcome-title');
 const welcomeSub = $('#welcome-sub');
-
 const loginForm = $('#login-form');
 const usernameEl = $('#username');
 const passwordEl = $('#password');
 const loginBtn = $('#login-btn');
 const loginError = $('#login-error');
 const passwordFallback = $('#password-fallback');
-const showPasswordLogin = $('#show-password-login');
-
 const logoutBtn = $('#logout-btn');
 const roomList = $('#room-list');
 const myName = $('#my-name');
@@ -204,15 +97,21 @@ async function matrix(method, path, body) {
 }
 
 async function matrixRegister(username, password) {
-  const initData = await matrix('POST', '/_matrix/client/v3/register?kind=user', {
-    username, password, device_id: `device_${Date.now()}`,
+  const body = { username, password, device_id: `device_${Date.now()}` };
+  // First call: 401 with session is expected (normal Matrix registration flow)
+  const res = await fetch(`${state.homeServer}/_matrix/client/v3/register?kind=user`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
   });
+  const initData = await res.json();
   if (initData.session) {
     return matrix('POST', '/_matrix/client/v3/register?kind=user', {
-      username, password, device_id: `device_${Date.now()}`,
+      ...body,
       auth: { session: initData.session, type: 'm.login.dummy' },
     });
   }
+  if (!res.ok) throw new Error(initData.error || initData.errcode || `HTTP ${res.status}`);
   return initData;
 }
 
@@ -232,7 +131,7 @@ async function matrixSync() {
 
 async function matrixSendMessage(roomId, text) {
   const txnId = makeTxn();
-  return matrix('PUT', `/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`, {
+  return matrix('PUT', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/send/m.room.message/${txnId}`, {
     msgtype: 'm.text', body: text,
   });
 }
@@ -249,7 +148,7 @@ async function matrixGetProfile(userId) {
 }
 
 async function matrixGetMembers(roomId) {
-  return matrix('GET', `/rooms/${encodeURIComponent(roomId)}/joined_members`);
+  return matrix('GET', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/joined_members`);
 }
 
 function mxcToHttp(mxc) {
@@ -392,7 +291,7 @@ async function selectRoom(roomId) {
 
   if (room.messages.length < 20) {
     try {
-      const data = await matrix('GET', `/rooms/${encodeURIComponent(roomId)}/messages?dir=b&limit=50`);
+      const data = await matrix('GET', `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/messages?dir=b&limit=50`);
       const events = data.chunk?.filter(e => e.type === 'm.room.message') || [];
       events.reverse();
       const existingIds = new Set(room.timeline.map(e => e.event_id));
@@ -560,90 +459,50 @@ function stopSync() {
   state.loggedIn = false;
 }
 
-// ============ Biometric Auth ============
-async function handleBioAuth() {
-  bioBtn.disabled = true;
+// ============ Guest Auth ============
+function generateGuestUsername() {
+  const c = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let r = '';
+  const a = crypto.getRandomValues(new Uint8Array(12));
+  for (let i = 0; i < 12; i++) r += c[a[i] % c.length];
+  return `guest_${r}`;
+}
 
-  // Check if we have stored credentials
-  const stored = await dbGetAll();
+async function handleGuestAuth() {
+  const guestBtn = document.getElementById('guest-btn');
+  const guestStatus = document.getElementById('guest-status');
+  if (guestBtn) guestBtn.disabled = true;
+  if (guestStatus) guestStatus.textContent = '게스트 계정 생성 중...';
 
-  if (stored.length > 0) {
-    // Login flow
-    bioStatus.textContent = '지문 인증 중...';
+  try {
+    const username = generateGuestUsername();
+    const password = `g_${crypto.getRandomValues(new Uint8Array(16)).join('')}`;
+    const regData = await matrixRegister(username, password);
+
+    state.accessToken = regData.access_token;
+    state.userId = regData.user_id;
+    state.deviceId = regData.device_id;
+    state.isGuest = true;
+    state.guestId = `guest_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    // Store in localStorage (not IndexedDB — guests don't persist credentials)
     try {
-      const assertion = await getPasskey();
-      const credId = bufToBase64(assertion.id);
-      const match = stored.find(c => c.credentialId === credId);
-
-      if (match) {
-        state.accessToken = match.accessToken;
-        state.userId = match.userId;
-        state.deviceId = match.deviceId;
-
-        // Verify token is still valid
-        try {
-          await matrix('GET', '/_matrix/client/v3/account/whoami');
-        } catch {
-          // Token expired, login with stored password
-          const loginData = await matrixLogin(match.username, match.password);
-          state.accessToken = loginData.access_token;
-          state.userId = loginData.user_id;
-          state.deviceId = loginData.device_id;
-          await dbStore(credId, { ...match, accessToken: loginData.access_token, deviceId: loginData.device_id });
-        }
-
-        enterChat();
-      } else {
-        bioStatus.textContent = '등록되지 않은 인증 정보입니다. 페이지를 새로고침 후 다시 시도하세요.';
-      }
-    } catch (err) {
-      if (err.name === 'NotAllowedError' || err.message?.includes('cancelled')) {
-        bioStatus.textContent = '';
-      } else {
-        bioStatus.textContent = `인증 실패: ${err.message}`;
-      }
-    }
-  } else {
-    // Registration flow
-    try {
-      const username = generateUsername();
-      const password = `p_${crypto.getRandomValues(new Uint8Array(16)).join('')}`;
-
-      bioStatus.textContent = '지문 등록 중...';
-      const passkey = await createPasskey(username);
-      const credId = bufToBase64(passkey.id);
-
-      bioStatus.textContent = '계정 생성 중...';
-      const regData = await matrixRegister(username, password);
-
-      state.accessToken = regData.access_token;
-      state.userId = regData.user_id;
-      state.deviceId = regData.device_id;
-
-      await dbStore(credId, {
-        userId: state.userId,
+      const guestSession = {
         accessToken: state.accessToken,
+        userId: state.userId,
         deviceId: state.deviceId,
-        username,
-        password,
-      });
+        guestId: state.guestId,
+      };
+      localStorage.setItem('privseai_guest', JSON.stringify(guestSession));
+    } catch {}
 
-      enterChat();
-    } catch (err) {
-      if (err.name === 'NotAllowedError' || err.message?.includes('cancelled')) {
-        bioStatus.textContent = '';
-      } else if (err.message?.includes('M_USER_IN_USE')) {
-        // Extremely rare but handle it by retrying
-        bioStatus.textContent = '다시 시도해주세요...';
-        setTimeout(() => { bioBtn.disabled = false; bioStatus.textContent = ''; }, 1000);
-        return;
-      } else {
-        bioStatus.textContent = `오류: ${err.message}`;
-      }
-    }
+    enterChat();
+  } catch (err) {
+    if (guestStatus) guestStatus.textContent = `게스트 접속 실패: ${err.message}`;
+    console.error('Guest auth failed:', err);
+  } finally {
+    if (guestBtn) guestBtn.disabled = false;
   }
-
-  bioBtn.disabled = false;
 }
 
 function enterChat() {
@@ -651,6 +510,26 @@ function enterChat() {
   chatScreen.classList.remove('hidden');
   myName.textContent = state.userId.split(':')[0].slice(1);
   myId.textContent = state.userId;
+
+  // Guest badge in sidebar
+  const guestBadge = document.getElementById('guest-badge');
+  if (guestBadge) {
+    if (state.isGuest) {
+      guestBadge.classList.remove('hidden');
+    } else {
+      guestBadge.classList.add('hidden');
+    }
+  }
+
+  // Guest info in sidebar
+  const guestInfo = document.getElementById('guest-info');
+  if (guestInfo) {
+    if (state.isGuest) {
+      guestInfo.classList.remove('hidden');
+    } else {
+      guestInfo.classList.add('hidden');
+    }
+  }
 
   ensureProfile(state.userId).then(() => {
     if (state.avatars[state.userId]) {
@@ -662,9 +541,36 @@ function enterChat() {
   try {
     sessionStorage.setItem('mx_token', state.accessToken);
     sessionStorage.setItem('mx_user', state.userId);
+    if (state.isGuest) sessionStorage.setItem('mx_guest', '1');
   } catch {}
 
   startSync();
+  ensureRoom();
+}
+
+async function ensureRoom() {
+  if (Object.keys(state.rooms).length > 0) return;
+  try {
+    const displayName = state.userId.split(':')[0].slice(1);
+    const data = await matrix('POST', '/_matrix/client/v3/createRoom', {
+      name: `${displayName}의 채팅방`,
+      preset: 'public_chat',
+      initial_state: [
+        { type: 'm.room.guest_access', state_key: '', content: { guest_access: 'can_join' } },
+        { type: 'm.room.history_visibility', state_key: '', content: { history_visibility: 'world_readable' } },
+      ],
+    });
+    state.rooms[data.room_id] = {
+      id: data.room_id,
+      name: `${displayName}의 채팅방`,
+      messages: [],
+      timeline: [],
+    };
+    renderRoomList();
+    selectRoom(data.room_id);
+  } catch (err) {
+    console.error('Room creation failed:', err);
+  }
 }
 
 // ============ Login (password fallback) ============
@@ -684,19 +590,6 @@ loginForm.addEventListener('submit', async (e) => {
     state.userId = data.user_id;
     state.deviceId = data.device_id;
 
-    // Optionally store as passkey
-    try {
-      const passkey = await createPasskey(username);
-      const credId = bufToBase64(passkey.id);
-      await dbStore(credId, {
-        userId: state.userId,
-        accessToken: state.accessToken,
-        deviceId: state.deviceId,
-        username,
-        password,
-      });
-    } catch {}
-
     enterChat();
   } catch (err) {
     loginError.textContent = err.message?.includes('M_FORBIDDEN') ? '아이디 또는 비밀번호가 올바르지 않습니다.' : `로그인 실패: ${err.message}`;
@@ -709,12 +602,19 @@ loginForm.addEventListener('submit', async (e) => {
 // ============ Logout ============
 function doLogout() {
   stopSync();
+  const wasGuest = state.isGuest;
   Object.assign(state, {
     accessToken: null, userId: null, since: null, rooms: {}, members: {},
     displayNames: {}, avatars: {}, currentRoomId: null, loggedIn: false,
+    isGuest: false, guestId: null,
   });
 
-  try { sessionStorage.removeItem('mx_token'); sessionStorage.removeItem('mx_user') } catch {}
+  try {
+    sessionStorage.removeItem('mx_token');
+    sessionStorage.removeItem('mx_user');
+    sessionStorage.removeItem('mx_guest');
+    if (wasGuest) localStorage.removeItem('privseai_guest');
+  } catch {}
 
   roomView.classList.add('hidden');
   roomPlaceholder.classList.remove('hidden');
@@ -725,19 +625,7 @@ function doLogout() {
   usernameEl.value = '';
   passwordEl.value = '';
   passwordFallback.classList.add('hidden');
-
-  initBioScreen();
 }
-
-logoutBtn.addEventListener('click', doLogout);
-
-// ============ UI handlers ============
-bioBtn.addEventListener('click', handleBioAuth);
-
-showPasswordLogin.addEventListener('click', (e) => {
-  e.preventDefault();
-  passwordFallback.classList.toggle('hidden');
-});
 
 messageInput.addEventListener('input', () => {
   messageInput.style.height = 'auto';
@@ -752,20 +640,35 @@ messageInput.addEventListener('keydown', (e) => {
 sendBtn.addEventListener('click', handleSend);
 
 // ============ Init ============
-async function initBioScreen() {
-  const stored = await dbGetAll();
-  if (stored.length > 0) {
-    welcomeTitle.textContent = '돌아오신 것을 환영합니다';
-    welcomeSub.textContent = '지문으로 로그인하세요';
-    bioBtn.innerHTML = '<span class="bio-icon">🔒</span> 지문으로 로그인';
-  } else {
-    welcomeTitle.textContent = 'privseai 채팅';
-    welcomeSub.textContent = 'Matrix 기반 채팅 서비스';
-    bioBtn.innerHTML = '<span class="bio-icon">🔒</span> 지문으로 시작하기';
-  }
-}
-
 (async function init() {
+  // Check for guest session in localStorage first
+  try {
+    const guestRaw = localStorage.getItem('privseai_guest');
+    if (guestRaw) {
+      const guest = JSON.parse(guestRaw);
+      state.accessToken = guest.accessToken;
+      state.userId = guest.userId;
+      state.deviceId = guest.deviceId;
+      state.isGuest = true;
+      state.guestId = guest.guestId;
+
+      try {
+        await matrix('GET', '/_matrix/client/v3/account/whoami');
+        loginScreen.classList.add('hidden');
+        chatScreen.classList.remove('hidden');
+        myName.textContent = guest.userId.split(':')[0].slice(1);
+        myId.textContent = guest.userId;
+        try { sessionStorage.setItem('mx_token', guest.accessToken); sessionStorage.setItem('mx_user', guest.userId); sessionStorage.setItem('mx_guest', '1'); } catch {}
+        startSync();
+        ensureRoom();
+        return;
+      } catch {
+        // Guest token expired, clear and show login
+        localStorage.removeItem('privseai_guest');
+      }
+    }
+  } catch {}
+
   try {
     const token = sessionStorage.getItem('mx_token');
     const user = sessionStorage.getItem('mx_user');
@@ -780,19 +683,17 @@ async function initBioScreen() {
         myName.textContent = user.split(':')[0].slice(1);
         myId.textContent = user;
         startSync();
+        ensureRoom();
         return;
       } catch {
-        // Token expired, will use biometric flow
+        // Token expired, show login
       }
     }
   } catch {}
 
-  try {
-    await initBioScreen();
-  } catch {
-    // IndexedDB unavailable or other init error, show basic login screen
-    welcomeTitle.textContent = 'privseai 채팅';
-    welcomeSub.textContent = 'Matrix 기반 채팅 서비스';
-    bioBtn.textContent = '🔒 다시 시도';
-  }
+  document.getElementById('guest-btn')?.addEventListener('click', handleGuestAuth);
+
+  // Show login screen by default
+  welcomeTitle.textContent = 'privseai 채팅';
+  welcomeSub.textContent = 'Matrix 기반 채팅 서비스';
 })();

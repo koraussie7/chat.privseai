@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>채팅 - privseai</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,15 +18,12 @@
         <p class="login-subtitle" id="welcome-sub">Matrix 기반 채팅 서비스</p>
       </div>
 
-      <div id="bio-section">
-        <button id="bio-btn" class="bio-btn">
-          <span class="bio-icon">🔒</span> 지문으로 시작하기
-        </button>
-        <p id="bio-status" class="bio-status"></p>
-        <a href="#" id="show-password-login" class="bio-alt-link">비밀번호로 로그인</a>
-      </div>
+      <button id="guest-btn" class="guest-btn primary-btn">
+        👤 게스트로 접속
+      </button>
+      <p id="guest-status" class="guest-status"></p>
 
-      <div id="password-fallback" class="hidden">
+      <div id="password-fallback">
         <div class="password-divider"><span>또는 비밀번호 로그인</span></div>
         <form id="login-form" autocomplete="off">
           <div class="input-group">
@@ -56,7 +54,11 @@
         <div class="my-info">
           <span class="my-name" id="my-name">User</span>
           <span class="my-id" id="my-id">@id:server</span>
+          <span id="guest-badge" class="guest-badge hidden">👤 게스트</span>
         </div>
+      </div>
+      <div id="guest-info" class="guest-info hidden">
+        <p class="guest-info-text">게스트 모드로 접속 중입니다</p>
       </div>
       <div id="room-list" class="room-list"></div>
     </aside>
@@ -87,6 +89,6 @@
     </main>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
