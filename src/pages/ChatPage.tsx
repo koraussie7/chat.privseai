@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { CompanionChat, type CompanionProfile, type UIMessage } from "@/components/CompanionChat";
 import { api } from "@/lib/config";
 import { useAuth } from "@/hooks/useAuth";
+import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { StatusPill } from "@/components/StatusPill";
 
 const BUILTIN: CompanionProfile[] = [
@@ -33,7 +34,8 @@ const BUILTIN: CompanionProfile[] = [
 export function ChatPage() {
 	const [companions, setCompanions] = useState<CompanionProfile[]>(BUILTIN);
 	const [activeId, setActiveId] = useState("luna");
-	const { user, quota, isAuthenticated, loading: authLoading } = useAuth();
+	const { user, quota, isAuthenticated } = useAuth();
+	const { colibriPeers } = useTrystero();
 	const navigate = useNavigate();
 
 	const companion = companions.find((c) => c.id === activeId) ?? companions[0];
@@ -49,6 +51,11 @@ export function ChatPage() {
 				.filter(Boolean)
 				.join("\n");
 
+			const nearestColibri = colibriPeers.find((p) => !p.baseUrl.includes("localhost"));
+			const colibri = nearestColibri
+				? { baseUrl: nearestColibri.baseUrl, model: nearestColibri.model }
+				: undefined;
+
 			const res = await fetch(api("/chat"), {
 				method: "POST",
 				credentials: "include",
@@ -58,6 +65,7 @@ export function ChatPage() {
 					message: text,
 					system,
 					byok: byok ? JSON.parse(byok) : undefined,
+					colibri,
 				}),
 			});
 
@@ -71,9 +79,10 @@ export function ChatPage() {
 				}
 				throw new Error(data.message || data.error || `HTTP ${res.status}`);
 			}
-			return data.reply ?? "…";
+			const route = data.route?.mode ?? "unknown";
+			return `${data.reply ?? "…"}\n\n[Via: ${route}${colibri ? " + Colibri P2P" : ""}]\n`;
 		},
-		[companion],
+		[companion, colibriPeers],
 	);
 
 	const quotaRemaining = quota?.remaining ?? 0;
@@ -95,12 +104,20 @@ export function ChatPage() {
 						</span>
 					)}
 				</span>
-				{isAuthenticated && (
-					<StatusPill
-						label={`${quotaRemaining}/${quotaLimit} free today`}
-						tone={quotaRemaining > 5 ? "good" : quotaRemaining > 0 ? "warn" : "neutral"}
-					/>
-				)}
+				<div className="flex items-center gap-2">
+					{colibriPeers.length > 0 && (
+						<StatusPill
+							label={`${colibriPeers.length} Colibri P2P peers`}
+							tone="good"
+						/>
+					)}
+					{isAuthenticated && (
+						<StatusPill
+							label={`${quotaRemaining}/${quotaLimit} free today`}
+							tone={quotaRemaining > 5 ? "good" : quotaRemaining > 0 ? "warn" : "neutral"}
+						/>
+					)}
+				</div>
 			</div>
 			<CompanionChat
 				companion={companion}
