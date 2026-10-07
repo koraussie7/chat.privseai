@@ -1,0 +1,23 @@
+{
+  "name": "privseai-trystero",
+  "extends": "@agentmesh/web/config/base.json",
+  "rules": {
+    "format": {
+      "enabled": true,
+      "lineWidth": 100
+    },
+    "linter": {
+      "enabled": true
+    },
+    "javascript": {
+      "format": {
+        "quoteStyle": "double"
+      }
+    },
+    "typescript": {
+      "style": {
+        "type": "dprint"
+      }
+    }
+  }
+}
