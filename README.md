@@ -2,6 +2,9 @@
 
 Trystero P2P signaling layer integration for privseai.com — bridges the muhanai `agentmesh` data pipeline (PythiaConnector → LocalCrabAdapter → Fellowship) with Trystero's WebRTC-based P2P transport.
 
+## Current integration status
+This repository contains the standalone UI scaffold and client adapters. It does not include the MuhanAI `agentmesh` source tree, PythiaConnector/LocalCrabAdapter Python packages, Fellowship service, or compiled Colibri WASM model. Those services must be supplied and configured separately; UI/API integration tests use mocks and do not prove live P2P connectivity or real inference availability.
+
 ## Architecture
 
 ```
@@ -116,3 +119,4 @@ VITE_TRYSTERO_APP_ID=privseai-p2pclaw
 | `VITE_FELLOWSHIP_URL` | `http://localhost:3001` | Fellowship node API URL |
 | `VITE_TRYSTERO_STRATEGY` | `nostr` | Trystero signaling strategy |
 | `VITE_TRYSTERO_APP_ID` | `privseai-p2pclaw` | Application ID for room isolation |
+| `VITE_REGION` | `global` | Public region label attached to peer metadata (not a trusted location claim) |

@@ -13,68 +13,62 @@
  *  - File/action-based sync for model chunks (replaces IPFS for small payloads)
  */
 
-import {
-  joinRoom,
-  type Room,
-  type SendOptions,
-  type ClientEvent,
-} from "trystero";
-import { selfId } from "trystero";
+import { type ClientEvent, type Room, type SendOptions, joinRoom, selfId } from "trystero";
 
 import type {
-  PythiaEvent,
-  PythiaForecast,
-  ImpactAnalysis,
-  ColibriMetrics,
-  PeerMetrics,
-  ModelChunkMetrics,
+	ColibriMetrics,
+	ImpactAnalysis,
+	ModelChunkMetrics,
+	PeerMetrics,
+	PythiaEvent,
+	PythiaForecast,
 } from "@/types/pythia";
 
 export interface TrysteroConfig {
-  appId: string;
-  strategy: TrysteroStrategy;
-  password?: string;
-  turnConfig?: RTCIceServer[];
-  relayConfig?: { urls: string[]; supabaseKey?: string };
+	appId: string;
+	strategy: TrysteroStrategy;
+	password?: string;
+	turnConfig?: RTCIceServer[];
+	relayConfig?: { urls: string[]; supabaseKey?: string };
 }
 
 export type TrysteroStrategy =
-  | "nostr"
-  | "torrent"
-  | "mqtt"
-  | "supabase"
-  | "firebase"
-  | "ipfs"
-  | "ws-relay";
+	| "nostr"
+	| "torrent"
+	| "mqtt"
+	| "supabase"
+	| "firebase"
+	| "ipfs"
+	| "ws-relay";
 
 const DEFAULT_CONFIG: TrysteroConfig = {
-  appId: "privseai-p2pclaw",
-  strategy: "nostr",
+	appId: "privseai-p2pclaw",
+	strategy: "nostr",
 };
 
 export interface PeerInfo {
-  id: string;
-  joinedAt: number;
-  region?: string;
-  capabilities?: string[];
+	id: string;
+	joinedAt: number;
+	region?: string;
+	capabilities?: string[];
 }
 
 export interface ColibriGatewayInfo {
-  baseUrl: string;
-  model?: string;
-  region?: string;
-  peerId: string;
-  timestamp: number;
-  isPublic?: boolean;
+	baseUrl: string;
+	model?: string;
+	region?: string;
+	peerId: string;
+	timestamp: number;
+	isPublic?: boolean;
 }
 
 export interface NetworkState {
-  peerCount: number;
-  peers: PeerInfo[];
-  connections: number;
-  lastHeartbeat: number;
-  strategy: TrysteroStrategy;
-  selfId: string;
+	peerCount: number;
+	peers: PeerInfo[];
+	connections: number;
+	lastHeartbeat: number;
+	strategy: TrysteroStrategy;
+	selfId: string;
 }
 
 export type PeerMessageHandler = (data: unknown, peerId: string) => void;
@@ -91,316 +85,318 @@ export type PeerLeaveHandler = (peerId: string) => void;
  *   client.broadcastEvent(event);
  */
 export class TrysteroP2PClient {
-  private room: Room | null = null;
-  private config: TrysteroConfig;
-  private peers: Map<string, PeerInfo> = new Map();
-  private handlers: {
-    peerJoin: Set<PeerJoinHandler>;
-    peerLeave: Set<PeerLeaveHandler>;
-    event: Set<PeerMessageHandler>;
-    forecast: Set<PeerMessageHandler>;
-    impact: Set<PeerMessageHandler>;
-    metrics: Set<PeerMessageHandler>;
-    task: Set<PeerMessageHandler>;
-    gateway: Set<PeerMessageHandler>;
-  } = {
-    peerJoin: new Set(),
-    peerLeave: new Set(),
-    event: new Set(),
-    forecast: new Set(),
-    impact: new Set(),
-    metrics: new Set(),
-    task: new Set(),
-    gateway: new Set(),
-  };
+	private room: Room | null = null;
+	private config: TrysteroConfig;
+	private peers: Map<string, PeerInfo> = new Map();
+	private handlers: {
+		peerJoin: Set<PeerJoinHandler>;
+		peerLeave: Set<PeerLeaveHandler>;
+		event: Set<PeerMessageHandler>;
+		forecast: Set<PeerMessageHandler>;
+		impact: Set<PeerMessageHandler>;
+		metrics: Set<PeerMessageHandler>;
+		task: Set<PeerMessageHandler>;
+		gateway: Set<PeerMessageHandler>;
+	} = {
+		peerJoin: new Set(),
+		peerLeave: new Set(),
+		event: new Set(),
+		forecast: new Set(),
+		impact: new Set(),
+		metrics: new Set(),
+		task: new Set(),
+		gateway: new Set(),
+	};
 
-  private colibriPeers: Map<string, ColibriGatewayInfo> = new Map();
+	private colibriPeers: Map<string, ColibriGatewayInfo> = new Map();
 
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+	private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
-  constructor(config: Partial<TrysteroConfig> = {}) {
-    this.config = { ...DEFAULT_CONFIG, ...config };
-  }
+	constructor(config: Partial<TrysteroConfig> = {}) {
+		this.config = { ...DEFAULT_CONFIG, ...config };
+	}
 
-  /**
-   * Join a Trystero room for the P2PCLAW network.
-   * Room ID follows the `{tenant}:{project}:{task}` isolation pattern from TRYSTERO_MUHANAI_INTEGRATION.md.
-   */
-  async join(roomId: string): Promise<void> {
-    const trysteroConfig = this._buildTrysteroConfig();
+	/**
+	 * Join a Trystero room for the P2PCLAW network.
+	 * Room ID follows the `{tenant}:{project}:{task}` isolation pattern from TRYSTERO_MUHANAI_INTEGRATION.md.
+	 */
+	async join(roomId: string): Promise<void> {
+		if (this.room) this.leave();
+		if (!roomId.trim()) throw new Error("Room ID cannot be empty");
+		const trysteroConfig = this._buildTrysteroConfig();
 
-    this.room = joinRoom(trysteroConfig, roomId);
+		this.room = joinRoom(trysteroConfig, roomId);
 
-    this.room.onPeerJoin = (peerId: string) => {
-      this.peers.set(peerId, {
-        id: peerId,
-        joinedAt: Date.now(),
-        region: process?.env?.REGION ?? "global",
-      });
-      this.handlers.peerJoin.forEach((h) => h(peerId));
-    };
+		this.room.onPeerJoin = (peerId: string) => {
+			this.peers.set(peerId, {
+				id: peerId,
+				joinedAt: Date.now(),
+				region: import.meta.env.VITE_REGION ?? "global",
+			});
+			for (const handler of this.handlers.peerJoin) handler(peerId);
+		};
 
-    this.room.onPeerLeave = (peerId: string) => {
-      this.peers.delete(peerId);
-      this.handlers.peerLeave.forEach((h) => h(peerId));
-    };
+		this.room.onPeerLeave = (peerId: string) => {
+			this.peers.delete(peerId);
+			for (const handler of this.handlers.peerLeave) handler(peerId);
+		};
 
-    this._setupActions();
-    this._startHeartbeat();
-  }
+		this._setupActions();
+		this._startHeartbeat();
+	}
 
-  leave(): void {
-    if (this.room) {
-      this.room.leave();
-      this.room = null;
-    }
-    this.peers.clear();
-    this.colibriPeers.clear();
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
-    }
-  }
+	leave(): void {
+		if (this.room) {
+			this.room.leave();
+			this.room = null;
+		}
+		this.peers.clear();
+		this.colibriPeers.clear();
+		if (this.heartbeatTimer) {
+			clearInterval(this.heartbeatTimer);
+			this.heartbeatTimer = null;
+		}
+	}
 
-  getSelfId(): string {
-    return selfId;
-  }
+	getSelfId(): string {
+		return selfId;
+	}
 
-  getNetworkState(): NetworkState {
-    return {
-      peerCount: this.peers.size,
-      peers: Array.from(this.peers.values()),
-      connections: this.peers.size,
-      lastHeartbeat: Date.now(),
-      strategy: this.config.strategy,
-      selfId: selfId,
-    };
-  }
+	getNetworkState(): NetworkState {
+		return {
+			peerCount: this.peers.size,
+			peers: Array.from(this.peers.values()),
+			connections: this.peers.size,
+			lastHeartbeat: Date.now(),
+			strategy: this.config.strategy,
+			selfId: selfId,
+		};
+	}
 
-  onPeerJoin(handler: PeerJoinHandler): () => void {
-    this.handlers.peerJoin.add(handler);
-    return () => this.handlers.peerJoin.delete(handler);
-  }
+	onPeerJoin(handler: PeerJoinHandler): () => void {
+		this.handlers.peerJoin.add(handler);
+		return () => this.handlers.peerJoin.delete(handler);
+	}
 
-  onPeerLeave(handler: PeerLeaveHandler): () => void {
-    this.handlers.peerLeave.add(handler);
-    return () => this.handlers.peerLeave.delete(handler);
-  }
+	onPeerLeave(handler: PeerLeaveHandler): () => void {
+		this.handlers.peerLeave.add(handler);
+		return () => this.handlers.peerLeave.delete(handler);
+	}
 
-  onPythiaEvent(handler: PeerMessageHandler): () => void {
-    this.handlers.event.add(handler);
-    return () => this.handlers.event.delete(handler);
-  }
+	onPythiaEvent(handler: PeerMessageHandler): () => void {
+		this.handlers.event.add(handler);
+		return () => this.handlers.event.delete(handler);
+	}
 
-  onPythiaForecast(handler: PeerMessageHandler): () => void {
-    this.handlers.forecast.add(handler);
-    return () => this.handlers.forecast.delete(handler);
-  }
+	onPythiaForecast(handler: PeerMessageHandler): () => void {
+		this.handlers.forecast.add(handler);
+		return () => this.handlers.forecast.delete(handler);
+	}
 
-  onImpactAlert(handler: PeerMessageHandler): () => void {
-    this.handlers.impact.add(handler);
-    return () => this.handlers.impact.delete(handler);
-  }
+	onImpactAlert(handler: PeerMessageHandler): () => void {
+		this.handlers.impact.add(handler);
+		return () => this.handlers.impact.delete(handler);
+	}
 
-  onMetrics(handler: PeerMessageHandler): () => void {
-    this.handlers.metrics.add(handler);
-    return () => this.handlers.metrics.delete(handler);
-  }
+	onMetrics(handler: PeerMessageHandler): () => void {
+		this.handlers.metrics.add(handler);
+		return () => this.handlers.metrics.delete(handler);
+	}
 
-  onTaskEvent(handler: PeerMessageHandler): () => void {
-    this.handlers.task.add(handler);
-    return () => this.handlers.task.delete(handler);
-  }
+	onTaskEvent(handler: PeerMessageHandler): () => void {
+		this.handlers.task.add(handler);
+		return () => this.handlers.task.delete(handler);
+	}
 
-  onColibriGateway(handler: PeerMessageHandler): () => void {
-    this.handlers.gateway.add(handler);
-    return () => this.handlers.gateway.delete(handler);
-  }
+	onColibriGateway(handler: PeerMessageHandler): () => void {
+		this.handlers.gateway.add(handler);
+		return () => this.handlers.gateway.delete(handler);
+	}
 
-  getColibriPeers(): Map<string, ColibriGatewayInfo> {
-    return new Map(this.colibriPeers);
-  }
+	getColibriPeers(): Map<string, ColibriGatewayInfo> {
+		return new Map(this.colibriPeers);
+	}
 
-  /**
-   * Broadcast a Pythia event to all peers in the room.
-   * Maps to the `event-feed` Trystero action.
-   */
-  broadcastEvent(event: PythiaEvent, opts?: SendOptions): void {
-    this._sendAction("event-feed", event, opts);
-  }
+	/**
+	 * Broadcast a Pythia event to all peers in the room.
+	 * Maps to the `event-feed` Trystero action.
+	 */
+	broadcastEvent(event: PythiaEvent, opts?: SendOptions): void {
+		this._sendAction("event-feed", event, opts);
+	}
 
-  /**
-   * Broadcast a Pythia forecast to all peers.
-   * Maps to the `forecast-update` Trystero action.
-   */
-  broadcastForecast(forecast: PythiaForecast, opts?: SendOptions): void {
-    this._sendAction("forecast-update", forecast, opts);
-  }
+	/**
+	 * Broadcast a Pythia forecast to all peers.
+	 * Maps to the `forecast-update` Trystero action.
+	 */
+	broadcastForecast(forecast: PythiaForecast, opts?: SendOptions): void {
+		this._sendAction("forecast-update", forecast, opts);
+	}
 
-  /**
-   * Broadcast an impact analysis to all peers.
-   * Maps to the `impact-alert` Trystero action.
-   */
-  broadcastImpact(impact: ImpactAnalysis, opts?: SendOptions): void {
-    this._sendAction("impact-alert", impact, opts);
-  }
+	/**
+	 * Broadcast an impact analysis to all peers.
+	 * Maps to the `impact-alert` Trystero action.
+	 */
+	broadcastImpact(impact: ImpactAnalysis, opts?: SendOptions): void {
+		this._sendAction("impact-alert", impact, opts);
+	}
 
-  /**
-   * Broadcast Colibri metrics (model performance, peer stats, chunk metrics).
-   * Maps to the `metrics-broadcast` Trystero action.
-   */
-  broadcastMetrics(metrics: {
-    colibri: ColibriMetrics;
-    peers: PeerMetrics[];
-    chunks: ModelChunkMetrics;
-  }, opts?: SendOptions): void {
-    this._sendAction("metrics-broadcast", metrics, opts);
-  }
+	/**
+	 * Broadcast Colibri metrics (model performance, peer stats, chunk metrics).
+	 * Maps to the `metrics-broadcast` Trystero action.
+	 */
+	broadcastMetrics(
+		metrics: {
+			colibri: ColibriMetrics;
+			peers: PeerMetrics[];
+			chunks: ModelChunkMetrics;
+		},
+		opts?: SendOptions,
+	): void {
+		this._sendAction("metrics-broadcast", metrics, opts);
+	}
 
-  /**
-   * Broadcast Colibri gateway info so peers can discover P2P inference endpoints.
-   * Maps to the `colibri-gateway` Trystero action.
-   * This bridges Trystero P2P discovery with the inference-router's colibri_p2p adapter.
-   */
-  broadcastColibriGateway(info: ColibriGatewayInfo, opts?: SendOptions): void {
-    this._sendAction("colibri-gateway", info, opts);
-  }
+	/**
+	 * Broadcast Colibri gateway info so peers can discover P2P inference endpoints.
+	 * Maps to the `colibri-gateway` Trystero action.
+	 * This bridges Trystero P2P discovery with the inference-router's colibri_p2p adapter.
+	 */
+	broadcastColibriGateway(info: ColibriGatewayInfo, opts?: SendOptions): void {
+		this._sendAction("colibri-gateway", info, opts);
+	}
 
-  /**
-   * Send a task-event action (start/complete/status) to specific peers or all.
-   */
-  async sendTaskEvent(
-    eventType: string,
-    payload: Record<string, unknown>,
-    opts?: SendOptions,
-  ): Promise<unknown> {
-    const data = {
-      schemaVersion: "1.0.0",
-      eventType,
-      timestamp: Date.now(),
-      eventId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      ...payload,
-    };
-    this._sendAction("task-event", data, opts);
-    return data;
-  }
+	/**
+	 * Send a task-event action (start/complete/status) to specific peers or all.
+	 */
+	async sendTaskEvent(
+		eventType: string,
+		payload: Record<string, unknown>,
+		opts?: SendOptions,
+	): Promise<unknown> {
+		const data = {
+			schemaVersion: "1.0.0",
+			eventType,
+			timestamp: Date.now(),
+			eventId: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+			...payload,
+		};
+		this._sendAction("task-event", data, opts);
+		return data;
+	}
 
-  /**
-   * Request-response action for peer capability queries.
-   * Maps to the `peer-query` Trystero request action.
-   */
-  async requestPeerCapabilities(
-    peerId: string,
-    timeoutMs = 5000,
-  ): Promise<unknown> {
-    if (!this.room) {
-      throw new Error("Not joined to a room");
-    }
-    const query = this.room.makeAction("peer-query", {
-      kind: "request",
-      onRequest: () => {
-        return {
-          peerId: selfId,
-          models: [],
-          region: process?.env?.REGION ?? "global",
-          timestamp: Date.now(),
-        };
-      },
-    });
+	/**
+	 * Request-response action for peer capability queries.
+	 * Maps to the `peer-query` Trystero request action.
+	 */
+	async requestPeerCapabilities(peerId: string, timeoutMs = 5000): Promise<unknown> {
+		if (!this.room) {
+			throw new Error("Not joined to a room");
+		}
+		const query = this.room.makeAction("peer-query", {
+			kind: "request",
+			onRequest: () => {
+				return {
+					peerId: selfId,
+					models: [],
+					region: import.meta.env.VITE_REGION ?? "global",
+					timestamp: Date.now(),
+				};
+			},
+		});
 
-    return query.request(null, { target: peerId, timeoutMs });
-  }
+		return query.request(null, { target: peerId, timeoutMs });
+	}
 
-  /**
-   * Ping a specific peer and return round-trip time in milliseconds.
-   */
-  async ping(peerId: string, timeoutMs = 3000): Promise<number> {
-    if (!this.room) {
-      throw new Error("Not joined to a room");
-    }
+	/**
+	 * Ping a specific peer and return round-trip time in milliseconds.
+	 */
+	async ping(peerId: string, timeoutMs = 3000): Promise<number> {
+		if (!this.room) {
+			throw new Error("Not joined to a room");
+		}
 
-    const ping = this.room.makeAction("ping-pong", {
-      kind: "request",
-      onRequest: () => Date.now(),
-    });
+		const ping = this.room.makeAction("ping-pong", {
+			kind: "request",
+			onRequest: () => Date.now(),
+		});
 
-    const start = Date.now();
-    try {
-      await ping.request(start, { target: peerId, timeoutMs });
-      return Date.now() - start;
-    } catch {
-      return -1;
-    }
-  }
+		const start = Date.now();
+		try {
+			await ping.request(start, { target: peerId, timeoutMs });
+			return Date.now() - start;
+		} catch {
+			return -1;
+		}
+	}
 
-  private _buildTrysteroConfig(): TrysteroConfig {
-    const cfg: TrysteroConfig = {
-      appId: this.config.appId,
-      strategy: this.config.strategy,
-    };
-    if (this.config.password) cfg.password = this.config.password;
-    if (this.config.turnConfig) cfg.turnConfig = this.config.turnConfig;
-    if (this.config.relayConfig) cfg.relayConfig = this.config.relayConfig;
-    return cfg;
-  }
+	private _buildTrysteroConfig(): TrysteroConfig {
+		const cfg: TrysteroConfig = {
+			appId: this.config.appId,
+			strategy: this.config.strategy,
+		};
+		if (this.config.password) cfg.password = this.config.password;
+		if (this.config.turnConfig) cfg.turnConfig = this.config.turnConfig;
+		if (this.config.relayConfig) cfg.relayConfig = this.config.relayConfig;
+		return cfg;
+	}
 
-  private _setupActions(): void {
-    if (!this.room) return;
+	private _setupActions(): void {
+		if (!this.room) return;
 
-    const eventFeed = this.room.makeAction("event-feed");
-    eventFeed.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      this.handlers.event.forEach((h) => h(data, peerId));
-    };
+		const eventFeed = this.room.makeAction("event-feed");
+		eventFeed.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			for (const handler of this.handlers.event) handler(data, peerId);
+		};
 
-    const forecastUpdate = this.room.makeAction("forecast-update");
-    forecastUpdate.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      this.handlers.forecast.forEach((h) => h(data, peerId));
-    };
+		const forecastUpdate = this.room.makeAction("forecast-update");
+		forecastUpdate.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			for (const handler of this.handlers.forecast) handler(data, peerId);
+		};
 
-    const impactAlert = this.room.makeAction("impact-alert");
-    impactAlert.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      this.handlers.impact.forEach((h) => h(data, peerId));
-    };
+		const impactAlert = this.room.makeAction("impact-alert");
+		impactAlert.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			for (const handler of this.handlers.impact) handler(data, peerId);
+		};
 
-    const metricsBroadcast = this.room.makeAction("metrics-broadcast");
-    metricsBroadcast.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      this.handlers.metrics.forEach((h) => h(data, peerId));
-    };
+		const metricsBroadcast = this.room.makeAction("metrics-broadcast");
+		metricsBroadcast.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			for (const handler of this.handlers.metrics) handler(data, peerId);
+		};
 
-    const taskEvent = this.room.makeAction("task-event");
-    taskEvent.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      this.handlers.task.forEach((h) => h(data, peerId));
-    };
+		const taskEvent = this.room.makeAction("task-event");
+		taskEvent.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			for (const handler of this.handlers.task) handler(data, peerId);
+		};
 
-    const gateway = this.room.makeAction("colibri-gateway");
-    gateway.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-      const info = data as ColibriGatewayInfo;
-      this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
-      this.handlers.gateway.forEach((h) => h(data, peerId));
-    };
-  }
+		const gateway = this.room.makeAction("colibri-gateway");
+		gateway.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+			const info = data as ColibriGatewayInfo;
+			this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
+			for (const handler of this.handlers.gateway) handler(data, peerId);
+		};
+	}
 
-  private _sendAction(actionId: string, data: unknown, opts?: SendOptions): void {
-    if (!this.room) {
-      console.warn("Not joined to a room, dropping message:", actionId);
-      return;
-    }
-    const action = this.room.makeAction(actionId);
-    action.send(data, opts);
-  }
+	private _sendAction(actionId: string, data: unknown, opts?: SendOptions): void {
+		if (!this.room) {
+			console.warn("Not joined to a room, dropping message:", actionId);
+			return;
+		}
+		const action = this.room.makeAction(actionId);
+		action.send(data, opts);
+	}
 
-  private _startHeartbeat(): void {
-    this.heartbeatTimer = setInterval(() => {
-      if (this.room) {
-        const heartbeat = this.room.makeAction("heartbeat");
-        heartbeat.send({
-          peerId: selfId,
-          ts: Date.now(),
-          peers: this.getNetworkState(),
-        });
-      }
-    }, 10000);
-  }
+	private _startHeartbeat(): void {
+		this.heartbeatTimer = setInterval(() => {
+			if (this.room) {
+				const heartbeat = this.room.makeAction("heartbeat");
+				heartbeat.send({
+					peerId: selfId,
+					ts: Date.now(),
+					peers: this.getNetworkState(),
+				});
+			}
+		}, 10000);
+	}
 }
 
 export { selfId, joinRoom };

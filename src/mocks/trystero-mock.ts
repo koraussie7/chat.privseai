@@ -1,49 +1,51 @@
 const actions = new Map<string, Record<string, unknown>>();
 
 const createAction = () => ({
-  onMessage: null,
-  onReceive: null,
-  onReceiveProgress: null,
-  send: vi.fn(),
-  request: vi.fn(),
-  requestMany: vi.fn(),
+	onMessage: null,
+	onReceive: null,
+	onReceiveProgress: null,
+	send: vi.fn(),
+	request: vi.fn(),
+	requestMany: vi.fn(),
 });
 
 const makeAction = vi.fn((actionId: string) => {
-  if (!actions.has(actionId)) {
-    actions.set(actionId, createAction());
-  }
-  return actions.get(actionId)!;
+	const existing = actions.get(actionId);
+	if (existing) return existing;
+	const action = createAction();
+	actions.set(actionId, action);
+	return action;
 });
 
 export const mockRoom = {
-  onPeerJoin: null as unknown,
-  onPeerLeave: null as unknown,
-  onPeerStream: null as unknown,
-  onPeerTrack: null as unknown,
-  makeAction,
-  leave: vi.fn(),
-  getPeers: vi.fn(() => ({})),
-  ping: vi.fn().mockResolvedValue(50),
-  _actions: actions,
-  _reset() {
-    this.onPeerJoin = null;
-    this.onPeerLeave = null;
-    this.onPeerStream = null;
-    this.onPeerTrack = null;
-    actions.clear();
-    this.makeAction.mockClear();
-    this.leave.mockClear();
-    this.getPeers.mockClear();
-    this.ping.mockClear();
-    this.ping.mockResolvedValue(50);
-    this.makeAction.mockImplementation((actionId: string) => {
-      if (!actions.has(actionId)) {
-        actions.set(actionId, createAction());
-      }
-      return actions.get(actionId)!;
-    });
-  },
+	onPeerJoin: null as unknown,
+	onPeerLeave: null as unknown,
+	onPeerStream: null as unknown,
+	onPeerTrack: null as unknown,
+	makeAction,
+	leave: vi.fn(),
+	getPeers: vi.fn(() => ({})),
+	ping: vi.fn().mockResolvedValue(50),
+	_actions: actions,
+	_reset() {
+		this.onPeerJoin = null;
+		this.onPeerLeave = null;
+		this.onPeerStream = null;
+		this.onPeerTrack = null;
+		actions.clear();
+		this.makeAction.mockClear();
+		this.leave.mockClear();
+		this.getPeers.mockClear();
+		this.ping.mockClear();
+		this.ping.mockResolvedValue(50);
+		this.makeAction.mockImplementation((actionId: string) => {
+			const existing = actions.get(actionId);
+			if (existing) return existing;
+			const action = createAction();
+			actions.set(actionId, action);
+			return action;
+		});
+	},
 };
 
 export const joinRoom = vi.fn(() => mockRoom);

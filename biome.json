@@ -1,23 +1,15 @@
 {
-  "name": "privseai-trystero",
-  "extends": "@agentmesh/web/config/base.json",
-  "rules": {
-    "format": {
-      "enabled": true,
-      "lineWidth": 100
-    },
-    "linter": {
-      "enabled": true
-    },
-    "javascript": {
-      "format": {
-        "quoteStyle": "double"
-      }
-    },
-    "typescript": {
-      "style": {
-        "type": "dprint"
-      }
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "formatter": {
+    "enabled": true,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
     }
   }
 }

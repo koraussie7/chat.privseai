@@ -1,0 +1,3 @@
+# Serve the standalone PrivseAI World dashboard at the domain root.
+/menu1/  / 301!
+/menu1   / 301!
