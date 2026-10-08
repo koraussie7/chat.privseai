@@ -4,6 +4,7 @@
  * Adapted for privseai-trystero Tailwind stack.
  */
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 
 export interface UIMessage {
 	id: string;
@@ -23,7 +24,7 @@ export interface CompanionProfile {
 	occupation?: string;
 	hobbies?: string[];
 	personality?: string[];
-	stage?: string;
+	stage?: number;
 }
 
 interface Props {
@@ -32,7 +33,10 @@ interface Props {
 	onSelectCompanion?: (id: string) => void;
 	onSend: (text: string) => Promise<string>;
 	initialMessages?: UIMessage[];
+	profileSlot?: ReactNode;
 }
+
+const STAGE_LABELS = ["Stranger", "Acquaintance", "Friend", "Close", "Partner", "Intimate"];
 
 const PLACEHOLDER_AVATAR =
 	"data:image/svg+xml," +
@@ -53,6 +57,7 @@ export function CompanionChat({
 	onSelectCompanion,
 	onSend,
 	initialMessages = [],
+	profileSlot,
 }: Props) {
 	const [messages, setMessages] = useState<UIMessage[]>(initialMessages);
 	const [input, setInput] = useState("");
@@ -137,7 +142,7 @@ export function CompanionChat({
 								<div className="min-w-0 flex-1">
 									<div className="text-sm font-medium truncate">{c.name}</div>
 									<div className="text-[11px] text-gray-500 truncate">
-										{c.personality?.[0] ?? c.stage ?? "Companion"}
+										{c.personality?.[0] ?? (c.stage !== undefined ? STAGE_LABELS[c.stage] ?? "Companion" : "Companion")}
 									</div>
 								</div>
 							</button>
@@ -257,8 +262,13 @@ export function CompanionChat({
 									<span className="text-gray-400 font-normal">, {companion.age}</span>
 								) : null}
 							</h2>
-							{companion.stage && (
-								<p className="text-xs text-cyan-400 mt-0.5 capitalize">{companion.stage}</p>
+							{companion.stage !== undefined && (
+								<p className="text-xs text-cyan-400 mt-0.5">
+									{"★".repeat(companion.stage + 1)}{" "}
+									{STAGE_LABELS[
+										companion.stage
+									] ?? ""}
+								</p>
 							)}
 						</div>
 					</div>
@@ -299,6 +309,11 @@ export function CompanionChat({
 							</div>
 						) : null}
 					</div>
+					{profileSlot && (
+						<div className="p-4 border-t border-white/10">
+							{profileSlot}
+						</div>
+					)}
 				</aside>
 			)}
 		</div>

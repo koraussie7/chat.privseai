@@ -1,10 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { CompanionChat, type CompanionProfile } from "@/components/CompanionChat";
+import { CharacterCardUploader } from "@/components/CharacterCardUploader";
+import { PersonalityEngine } from "@/lib/personality-engine";
+import { CharacterCardParser } from "@/lib/character-card";
 import { api } from "@/lib/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { StatusPill } from "@/components/StatusPill";
+import type { CharacterCard, EmotionState, ParsedCharacterCard } from "@/types/character";
+import { DEFAULT_EMOTION_STATE } from "@/types/character";
 
 const BUILTIN: CompanionProfile[] = [
 	{
@@ -16,7 +21,7 @@ const BUILTIN: CompanionProfile[] = [
 		occupation: "Illustrator",
 		hobbies: ["Stargazing", "Coffee"],
 		personality: ["Warm", "Curious", "Gentle"],
-		stage: "close",
+		stage: 3,
 	},
 	{
 		id: "aria",
@@ -27,34 +32,67 @@ const BUILTIN: CompanionProfile[] = [
 		occupation: "Student",
 		hobbies: ["Reading", "Walking"],
 		personality: ["Playful", "Attentive"],
-		stage: "friend",
+		stage: 2,
 	},
 ];
 
+const STORAGE_KEY = "privseai_companion_cards";
+
 export function ChatPage() {
 	const [companions] = useState<CompanionProfile[]>(BUILTIN);
-	const [activeId] = useState("luna");
+	const [activeId, setActiveId] = useState("luna");
+	const [importedCards, setImportedCards] = useState<CharacterCard[]>([]);
+	const [emotionState, setEmotionState] = useState<Record<string, EmotionState>>({});
 	const { user, quota, isAuthenticated } = useAuth();
 	const { colibriPeers } = useTrystero();
 	const navigate = useNavigate();
+	const personalityEngine = useMemo(() => new PersonalityEngine(), []);
 
-	const companion = companions.find((c) => c.id === activeId) ?? companions[0];
+	useEffect(() => {
+		const saved = localStorage.getItem(STORAGE_KEY);
+		if (saved) {
+			try {
+				setImportedCards(JSON.parse(saved));
+			} catch {}
+		}
+	}, []);
+
+	const allProfiles = useMemo(() => {
+		const imported = importedCards.map((card) => CharacterCardParser.cardToProfile(card));
+		return [...companions, ...imported];
+	}, [companions, importedCards]);
+
+	const companion = allProfiles.find((c) => c.id === activeId) ?? allProfiles[0];
+
+	const handleImportCard = (parsed: ParsedCharacterCard) => {
+		const newCards = [...importedCards, parsed.card];
+		setImportedCards(newCards);
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(newCards));
+
+		const profile = CharacterCardParser.cardToProfile(parsed.card);
+		setActiveId(profile.id);
+	};
+
+	const currentEmotion = emotionState[companion.id] ?? DEFAULT_EMOTION_STATE;
+	const stage = personalityEngine.getStageFromRelationship(companion);
 
 	const onSend = useMemo(
 		() => async (text: string) => {
 			const byok = localStorage.getItem("byok_key")?.trim();
-			const system = [
-				`You are ${companion.name}.`,
-				companion.bio,
-				companion.personality?.length ? `Personality: ${companion.personality.join(", ")}` : "",
-			]
-				.filter(Boolean)
-				.join("\n");
+
+			const systemPrompt = personalityEngine.generateSystemPrompt(
+				companion,
+				currentEmotion,
+				stage,
+			);
 
 			const nearestColibri = colibriPeers.find((p) => !p.baseUrl.includes("localhost"));
 			const colibri = nearestColibri
 				? { baseUrl: nearestColibri.baseUrl, model: nearestColibri.model }
 				: undefined;
+
+			const emotion = personalityEngine.updateEmotion({ type: "message" }, currentEmotion);
+			setEmotionState((prev) => ({ ...prev, [companion.id]: emotion }));
 
 			const res = await fetch(api("/chat"), {
 				method: "POST",
@@ -63,7 +101,9 @@ export function ChatPage() {
 				body: JSON.stringify({
 					companionId: companion.id,
 					message: text,
-					system,
+					system: systemPrompt,
+					emotionState: currentEmotion,
+					stage: stage,
 					byok: byok ? JSON.parse(byok) : undefined,
 					colibri,
 				}),
@@ -82,7 +122,7 @@ export function ChatPage() {
 			const route = data.route?.mode ?? "unknown";
 			return `${data.reply ?? "…"}\n\n[Via: ${route}${colibri ? " + Colibri P2P" : ""}]\n`;
 		},
-		[companion, colibriPeers],
+		[companion, currentEmotion, stage, colibriPeers, personalityEngine],
 	);
 
 	const quotaRemaining = quota?.remaining ?? 0;
@@ -106,10 +146,7 @@ export function ChatPage() {
 				</span>
 				<div className="flex items-center gap-2">
 					{colibriPeers.length > 0 && (
-						<StatusPill
-							label={`${colibriPeers.length} Colibri P2P peers`}
-							tone="good"
-						/>
+						<StatusPill label={`${colibriPeers.length} Colibri P2P peers`} tone="good" />
 					)}
 					{isAuthenticated && (
 						<StatusPill
@@ -121,9 +158,13 @@ export function ChatPage() {
 			</div>
 			<CompanionChat
 				companion={companion}
-				companions={companions}
-				onSelectCompanion={(id) => navigate(`/chat/${id}`)}
+				companions={allProfiles}
+				onSelectCompanion={(id) => {
+					setActiveId(id);
+					navigate(`/chat/${id}`);
+				}}
 				onSend={onSend}
+				profileSlot={<CharacterCardUploader onImport={handleImportCard} />}
 				initialMessages={[
 					{
 						id: "welcome",
