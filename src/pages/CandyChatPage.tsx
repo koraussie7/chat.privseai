@@ -44,20 +44,24 @@ export function CandyChatPage() {
     companions.find((c) => c.id.toLowerCase() === activeId.toLowerCase()) ||
     companions[0] ||
     CANDY_PRESETS[0];
-  const activeCompanion = {
-    ...baseCompanion,
-    stage: Math.max(
-      baseCompanion.stage,
-      progress[baseCompanion.id]?.stage ?? 0,
-    ),
-    gallery: baseCompanion.gallery.map((photo) => ({
-      ...photo,
-      isUnlocked:
-        photo.isUnlocked ||
-        (photo.requiredStage ?? 0) <=
-          (progress[baseCompanion.id]?.stage ?? baseCompanion.stage),
-    })),
-  };
+  const savedStage = Math.max(
+    baseCompanion.stage,
+    progress[baseCompanion.id]?.stage ?? 0,
+  );
+  // Memoize the merged companion so the chat component keeps its message
+  // history between renders — a new object identity would wipe the thread.
+  const activeCompanion = useMemo(
+    () => ({
+      ...baseCompanion,
+      stage: savedStage,
+      gallery: baseCompanion.gallery.map((photo) => ({
+        ...photo,
+        isUnlocked:
+          photo.isUnlocked || (photo.requiredStage ?? 0) <= savedStage,
+      })),
+    }),
+    [baseCompanion, savedStage],
+  );
 
   const personalityEngine = useMemo(() => new PersonalityEngine(), []);
   const [colibriClient, setColibriClient] = useState<ColibriWASMClient | null>(
