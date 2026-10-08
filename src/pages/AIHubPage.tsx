@@ -100,22 +100,28 @@ export function AIHubPage() {
         const incoming = data as AIPackage;
         if (!incoming?.id || incoming.spec !== "ai-package-v1") return;
         aiHub.receivePackage(incoming, peerId);
-        setPackages((current) =>
-          current.some((pkg) => pkg.id === incoming.id)
-            ? current
-            : [...current, incoming],
-        );
-        setNotice({
-          kind: "success",
-          text: `Received ${incoming.metadata.name} from the P2P network.`,
+        setPackages((current) => {
+          const existing = current.find((pkg) => pkg.id === incoming.id);
+          if (existing) return current;
+          setNotice({
+            kind: "success",
+            text: `Received ${incoming.metadata.name} from the P2P network.`,
+          });
+          return [...current, incoming];
         });
       });
       setPackages((current) => {
         const known = new Set(current.map((pkg) => pkg.id));
-        return [
-          ...current,
-          ...aiHub.getAllPackages().filter((pkg) => !known.has(pkg.id)),
-        ];
+        const discovered = aiHub
+          .getAllPackages()
+          .filter((pkg) => !known.has(pkg.id));
+        if (discovered.length > 0) {
+          setNotice({
+            kind: "success",
+            text: `${discovered.length} AI package(s) discovered from peers.`,
+          });
+        }
+        return [...current, ...discovered];
       });
       return unsubscribe;
     });
@@ -192,11 +198,6 @@ export function AIHubPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
-  };
-
-  const updatePackage = (pkg: AIPackage) => {
-    setPackages((current) => current.map((item) => item.id === pkg.id ? pkg : item));
-    setSavedPackages((current) => current.map((item) => item.id === pkg.id ? pkg : item));
   };
 
   const handleClone = (pkg: AIPackage) => {
@@ -304,27 +305,24 @@ export function AIHubPage() {
   const handleShare = async (pkg: AIPackage) => {
     const result = await aiHub.sharePackage(pkg);
     if (result.success) {
+      const shared = aiHub.getPackage(pkg.id) ?? pkg;
       setNotice({
         kind: "success",
         text: `Shared ${pkg.metadata.name} with ${result.peerId ? "a P2P peer" : "the P2P network"}.`,
       });
-      const markShared = (item: AIPackage): AIPackage =>
-        item.id === pkg.id
-          ? {
-              ...item,
-              metadata: {
-                ...item.metadata,
-                isPublic: true,
-                publishedAt: item.metadata.publishedAt || Date.now(),
-              },
-            }
-          : item;
-      setPackages((current) => current.map(markShared));
+      setPackages((current) =>
+        current.map((item) => (item.id === pkg.id ? shared : item)),
+      );
       setSavedPackages((current) => {
-        const next = current.map(markShared);
+        const next = current.map((item) =>
+          item.id === pkg.id ? shared : item,
+        );
         localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         return next;
       });
+      setSelectedPackage((current) =>
+        current?.id === shared.id ? shared : current,
+      );
       return;
     }
     setNotice({

@@ -399,7 +399,6 @@ export class AIHub {
       pkg.metadata.publishedAt = Date.now();
       pkg.metadata.isPublic = true;
       this._publishLocal(pkg);
-      this.packages.set(pkg.id, pkg);
 
       const peers = Array.from(this.client.getNetworkState().peers);
 
