@@ -60,18 +60,25 @@ export function CandyChatPage() {
   };
 
   const personalityEngine = useMemo(() => new PersonalityEngine(), []);
-  const [colibriClient, setColibriClient] = useState<ColibriWASMClient | null>(null);
+  const [colibriClient, setColibriClient] = useState<ColibriWASMClient | null>(
+    null,
+  );
   const [gfClient, setGfClient] = useState<GirlfriendAIClient | null>(null);
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: "user" | "assistant"; content: string; timestamp: number }>
   >([]);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    if (
+      typeof window !== "undefined" &&
+      window.location.hostname === "localhost"
+    ) {
       setColibriClient(new ColibriWASMClient("http://localhost:3001"));
-      setGfClient(new GirlfriendAIClient({
-        baseUrl: "http://localhost:3002",
-      }));
+      setGfClient(
+        new GirlfriendAIClient({
+          baseUrl: "http://localhost:3002",
+        }),
+      );
     } else {
       setGfClient(new GirlfriendAIClient());
     }
@@ -169,10 +176,28 @@ export function CandyChatPage() {
     );
 
     try {
+      const byok = localStorage.getItem("byok_key")?.trim();
+      let apiKey: string | undefined;
+      if (byok) {
+        try {
+          const parsed = JSON.parse(byok) as {
+            apiKey?: string;
+            key?: string;
+            openai?: { apiKey?: string };
+          };
+          apiKey = parsed.apiKey ?? parsed.key ?? parsed.openai?.apiKey;
+        } catch {
+          apiKey = byok;
+        }
+      }
+
       const res = await fetch(api("/v1/chat/completions"), {
         method: "POST",
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
+        },
         body: JSON.stringify({
           model: "smart",
           messages: [
@@ -188,25 +213,60 @@ export function CandyChatPage() {
       if (!res.ok) {
         if (data.error === "login_required") {
           const reply = await tryColibriFallback(text, systemPrompt);
-          return reply ?? generateOfflineCompanionReply(activeCompanion, text, conversationHistory);
+          return (
+            reply ??
+            generateOfflineCompanionReply(
+              activeCompanion,
+              text,
+              conversationHistory,
+            )
+          );
         }
         if (data.error === "quota_exceeded") {
           const reply = await tryColibriFallback(text, systemPrompt);
-          return reply ?? generateOfflineCompanionReply(activeCompanion, text, conversationHistory);
+          return (
+            reply ??
+            generateOfflineCompanionReply(
+              activeCompanion,
+              text,
+              conversationHistory,
+            )
+          );
         }
         const reply = await tryColibriFallback(text, systemPrompt);
-        return reply ?? generateOfflineCompanionReply(activeCompanion, text, conversationHistory);
+        return (
+          reply ??
+          generateOfflineCompanionReply(
+            activeCompanion,
+            text,
+            conversationHistory,
+          )
+        );
       }
 
       const reply = data.choices?.[0]?.message?.content;
-      return reply ?? generateOfflineCompanionReply(activeCompanion, text, conversationHistory);
+      return (
+        reply ??
+        generateOfflineCompanionReply(
+          activeCompanion,
+          text,
+          conversationHistory,
+        )
+      );
     } catch {
       const reply = await tryColibriFallback(text, systemPrompt);
-      return reply ?? generateOfflineCompanionReply(activeCompanion, text, conversationHistory);
+      return (
+        reply ??
+        generateOfflineCompanionReply(
+          activeCompanion,
+          text,
+          conversationHistory,
+        )
+      );
     }
   };
 
-   const tryColibriFallback = async (
+  const tryColibriFallback = async (
     text: string,
     systemPrompt: string,
   ): Promise<string | null> => {
@@ -214,11 +274,11 @@ export function CandyChatPage() {
     if (colibriClient) {
       try {
         const fullPrompt = `${systemPrompt}\n\n${conversationHistoryToPrompt(chatHistory)}\nUser: ${text}\nAssistant:`;
-        const result = await colibriClient.generate(
-          "qwen3-0.6b",
-          fullPrompt,
-          { maxTokens: 512, temperature: 0.7, topP: 0.9 },
-        );
+        const result = await colibriClient.generate("qwen3-0.6b", fullPrompt, {
+          maxTokens: 512,
+          temperature: 0.7,
+          topP: 0.9,
+        });
         if (!result.error && result.choices?.[0]?.message?.content) {
           return result.choices[0].message.content;
         }
