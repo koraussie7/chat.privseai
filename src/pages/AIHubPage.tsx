@@ -24,7 +24,43 @@ export function AIHubPage() {
     text: string;
   } | null>(null);
   const [showCollection, setShowCollection] = useState(false);
+  const [activeTab, setActiveTab] = useState<"discover" | "images">("discover");
   const [isHubReady, setIsHubReady] = useState(false);
+  const [comfyuiUrl, setComfyuiUrl] = useState(
+    localStorage.getItem("privseai_comfyui_url") || "http://127.0.0.1:8188",
+  );
+  const [comfyuiStatus, setComfyuiStatus] = useState<{
+    online: boolean;
+    models: string[];
+  } | null>(null);
+  const [stylePresets, setStylePresets] = useState<
+    import("@/types/ai-package").StylePreset[]
+  >(() => [
+    {
+      id: "candy-realism",
+      name: "Candy Realism",
+      description: "실사풍 캐릭터 초상화",
+      promptTemplate:
+        "{name}, {prompt}, photorealistic portrait, warm cinematic light, soft skin detail, elegant and romantic",
+    },
+    {
+      id: "anime-elegance",
+      name: "Anime Elegance",
+      description: "우아한 애니메이션 스타일",
+      promptTemplate:
+        "{name}, {prompt}, elegant anime illustration, refined line art, soft colors, detailed eyes",
+    },
+    {
+      id: "cyber-noir",
+      name: "Cyber Noir",
+      description: "네온 사이버 누아르",
+      promptTemplate:
+        "{name}, {prompt}, cyber noir portrait, neon rim lighting, cinematic dark city, detailed",
+    },
+  ]);
+  const [selectedStyleId, setSelectedStyleId] = useState("candy-realism");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [detailImagePrompt, setDetailImagePrompt] = useState("");
   const navigate = useNavigate();
   const { network, colibriPeers, registerClientReady } = useTrystero();
 
@@ -94,6 +130,22 @@ export function AIHubPage() {
   }, [aiHub]);
 
   useEffect(() => {
+    try {
+      const savedUrl = localStorage.getItem("privseai_comfyui_url");
+      if (savedUrl) aiHub.setComfyUIUrl(savedUrl);
+      const savedStyles = localStorage.getItem("privseai_comfyui_styles");
+      if (savedStyles) {
+        const parsed = JSON.parse(
+          savedStyles,
+        ) as import("@/types/ai-package").StylePreset[];
+        if (Array.isArray(parsed) && parsed.length > 0) setStylePresets(parsed);
+      }
+    } catch {
+      localStorage.removeItem("privseai_comfyui_styles");
+    }
+  }, [aiHub]);
+
+  useEffect(() => {
     return registerClientReady((client) => {
       aiHub.setClient(client);
       const unsubscribe = client.onAIPackage((data, peerId) => {
@@ -109,19 +161,6 @@ export function AIHubPage() {
           });
           return [...current, incoming];
         });
-      });
-      setPackages((current) => {
-        const known = new Set(current.map((pkg) => pkg.id));
-        const discovered = aiHub
-          .getAllPackages()
-          .filter((pkg) => !known.has(pkg.id));
-        if (discovered.length > 0) {
-          setNotice({
-            kind: "success",
-            text: `${discovered.length} AI package(s) discovered from peers.`,
-          });
-        }
-        return [...current, ...discovered];
       });
       return unsubscribe;
     });
@@ -198,6 +237,135 @@ export function AIHubPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       return next;
     });
+  };
+
+  const persistGeneratedImage = (
+    pkg: AIPackage,
+    image: import("@/types/ai-package").ImageAsset,
+  ) => {
+    const existing = packages.find((item) => item.id === pkg.id) ?? pkg;
+    const updated: AIPackage = {
+      ...existing,
+      media: {
+        ...existing.media,
+        avatarUrl: existing.media.avatarUrl || image.url,
+        images: [
+          ...(existing.media.images ?? []).filter(
+            (item) => item.id !== image.id,
+          ),
+          image,
+        ],
+        gallery: Array.from(
+          new Set([...(existing.media.gallery ?? []), image.url]),
+        ),
+      },
+      galleryItems: [
+        ...(existing.galleryItems ?? []).filter((item) => item.id !== image.id),
+        {
+          id: image.id,
+          type: "image",
+          url: image.url,
+          thumbnailUrl: image.thumbnailUrl,
+          title: image.title,
+          description: image.description,
+          isUnlocked: true,
+          prompt: image.prompt,
+          metadata: {
+            model: image.model,
+            width: image.width,
+            height: image.height,
+            seed: image.seed,
+            workflowId: image.workflowId,
+          },
+        },
+      ],
+    };
+    aiHub.addImageAsset(pkg.id, image);
+    setPackages((current) =>
+      current.map((item) => (item.id === pkg.id ? updated : item)),
+    );
+    setSavedPackages((current) => {
+      const next = current.map((item) => (item.id === pkg.id ? updated : item));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+    setNotice({
+      kind: "success",
+      text: `Image saved to ${pkg.metadata.name}'s collection.`,
+    });
+  };
+
+  const handleGenerateForPackage = async (
+    pkg: AIPackage,
+    prompt: string,
+    styleId: string,
+  ) => {
+    if (!comfyuiStatus?.online) {
+      setNotice({
+        kind: "error",
+        text: "Connect to ComfyUI in the Images tab first. Check server URL and CORS.",
+      });
+      setActiveTab("images");
+      setShowCollection(true);
+      return;
+    }
+    if (!prompt.trim()) {
+      setNotice({ kind: "error", text: "Enter an image prompt first." });
+      return;
+    }
+    setIsGenerating(true);
+    setNotice(null);
+    try {
+      const { ComfyUIClient } = await import("@/lib/comfyui-client");
+      const client = new ComfyUIClient(comfyuiUrl.trim());
+      const status = await client.getStatus();
+      setComfyuiStatus(status);
+      if (!status.online)
+        throw new Error(
+          `Can't reach ComfyUI at ${comfyuiUrl}. Check server address and CORS.`,
+        );
+      const style = stylePresets.find((item) => item.id === styleId);
+      const finalPrompt = style
+        ? style.promptTemplate
+            .replaceAll("{name}", pkg.metadata.name)
+            .replaceAll("{prompt}", prompt)
+        : prompt;
+      const workflow = client.createWorkflowFromPrompt(
+        `wf-${pkg.id}-${Date.now()}`,
+        `${pkg.metadata.name} portrait`,
+        {
+          prompt: finalPrompt,
+          negativePrompt:
+            style?.negativePrompt ||
+            "low quality, blurry, malformed hands, text, watermark",
+          model:
+            style?.model ||
+            localStorage.getItem("privseai_comfyui_model") ||
+            status.models[0] ||
+            "sd_xl_base_1.0.safetensors",
+          width: style?.width || 512,
+          height: style?.height || 768,
+          steps: style?.steps || 20,
+          cfg: style?.cfg || 7,
+          sampler: style?.sampler || "euler",
+        },
+      );
+      const job = await client.submitWorkflow(workflow);
+      if (job.status === "failed")
+        throw new Error(job.error || "ComfyUI rejected the workflow.");
+      const finished = await client.waitForJob(job.id, 120000);
+      if (finished.status !== "completed" || !finished.image)
+        throw new Error(finished.error || "Image generation timed out.");
+      persistGeneratedImage(pkg, finished.image);
+    } catch (error) {
+      setNotice({
+        kind: "error",
+        text:
+          error instanceof Error ? error.message : "Image generation failed.",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleClone = (pkg: AIPackage) => {
@@ -346,6 +514,27 @@ export function AIHubPage() {
   ];
 
   const categories = ["all", "realistic", "anime", "cyber", "fantasy"];
+  const imagePackages = packages.filter(
+    (pkg) => (pkg.media.images?.length ?? 0) > 0,
+  );
+  const checkComfyUI = async () => {
+    const { ComfyUIClient } = await import("@/lib/comfyui-client");
+    const client = new ComfyUIClient(comfyuiUrl.trim());
+    const status = await client.getStatus();
+    setComfyuiStatus({ online: status.online, models: status.models });
+    if (!status.online) {
+      setNotice({
+        kind: "error",
+        text: `Cannot reach ComfyUI at ${comfyuiUrl}. Check the server address and allow this site's origin in ComfyUI CORS settings.`,
+      });
+    } else {
+      localStorage.setItem("privseai_comfyui_url", comfyuiUrl.trim());
+      setNotice({
+        kind: "success",
+        text: `Connected to ComfyUI at ${comfyuiUrl}.`,
+      });
+    }
+  };
 
   return (
     <div className="mx-auto w-full max-w-7xl flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
@@ -438,22 +627,137 @@ export function AIHubPage() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-none">
-        {tags.map((tag) => (
-          <button
-            key={tag}
-            type="button"
-            onClick={() => setActiveTag(tag)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
-              activeTag === tag
-                ? "bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
-                : "bg-white/[0.03] border border-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/[0.07]"
-            }`}
-          >
-            {tag === "all" ? "🔥 All Tags" : `#${tag}`}
-          </button>
-        ))}
-      </div>
+      {activeTab === "images" && (
+        <section className="mb-6 rounded-2xl border-cyan-400/15 bg-cyan-400/[0.04] p-4 sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
+            <label className="block flex-1 text-xs font-medium text-slate-300">
+              ComfyUI server URL
+              <input
+                value={comfyuiUrl}
+                onChange={(event) => {
+                  setComfyuiUrl(event.target.value);
+                  setComfyuiStatus(null);
+                }}
+                placeholder="http://127.0.0.1:8188"
+                className="mt-1.5 w-full rounded-xl border-white/10 bg-[#13141f] px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/50"
+              />
+            </label>
+            <button
+              type="button"
+              onClick={() => {
+                void checkComfyUI();
+              }}
+              className="rounded-xl border-cyan-300/20 bg-cyan-300/10 px-4 py-2.5 text-sm font-semibold text-cyan-100"
+            >
+              Check connection
+            </button>
+            <span
+              role="status"
+              className={`text-xs ${comfyuiStatus?.online ? "text-emerald-300" : comfyuiStatus ? "text-rose-300" : "text-slate-500"}`}
+            >
+              {comfyuiStatus
+                ? comfyuiStatus.online
+                  ? `Connected${comfyuiStatus.models.length ? ` · ${comfyuiStatus.models.length} models` : ""}`
+                  : "Not reachable"
+                : "Not checked"}
+            </span>
+          </div>
+          {comfyuiStatus?.online && comfyuiStatus.models.length === 0 && (
+            <p className="mt-2 text-xs text-amber-200">
+              ComfyUI is reachable, but model discovery may require a local
+              server extension. Enter the installed checkpoint filename below if
+              needed.
+            </p>
+          )}
+          {comfyuiStatus?.online && (
+            <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+              <select
+                value={selectedStyleId}
+                onChange={(event) => setSelectedStyleId(event.target.value)}
+                className="rounded-xl border-white/10 bg-[#13141f] px-3 py-2.5 text-sm text-white"
+                aria-label="Image style"
+              >
+                {stylePresets.map((style) => (
+                  <option key={style.id} value={style.id}>
+                    {style.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                aria-label="Checkpoint model"
+                value={
+                  localStorage.getItem("privseai_comfyui_model") ||
+                  comfyuiStatus.models[0] ||
+                  "sd_xl_base_1.0.safetensors"
+                }
+                onChange={(event) =>
+                  localStorage.setItem(
+                    "privseai_comfyui_model",
+                    event.target.value,
+                  )
+                }
+                className="rounded-xl border-white/10 bg-[#13141f] px-3 py-2.5 text-sm text-white"
+              >
+                {comfyuiStatus.models.length ? (
+                  comfyuiStatus.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))
+                ) : (
+                  <option value="sd_xl_base_1.0.safetensors">
+                    sd_xl_base_1.0.safetensors
+                  </option>
+                )}
+              </select>
+            </div>
+          )}
+          {!comfyuiStatus?.online && (
+            <p className="mt-3 text-xs text-slate-400">
+              Once connected, open a character card → ComfyUI Portrait Studio to
+              enter a prompt and generate. Browser access needs ComfyUI CORS to
+              allow the site origin.
+            </p>
+          )}
+        </section>
+      )}
+      {activeTab === "images" && imagePackages.length > 0 && (
+        <section className="mb-6">
+          <h2 className="mb-3 text-sm font-semibold text-white">
+            Generated image packages
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {imagePackages.map((pkg) => (
+              <button
+                key={pkg.id}
+                type="button"
+                onClick={() => setSelectedPackage(pkg)}
+                className="rounded-full border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-slate-200 hover:border-cyan-300/30"
+              >
+                {pkg.metadata.name} · {pkg.media.images?.length ?? 0}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+      {activeTab === "discover" && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-4 scrollbar-none">
+          {tags.map((tag) => (
+            <button
+              key={tag}
+              type="button"
+              onClick={() => setActiveTag(tag)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all ${
+                activeTag === tag
+                  ? "bg-cyan-500/20 border border-cyan-400/50 text-cyan-300"
+                  : "bg-white/[0.03] border border-white/5 text-gray-400 hover:text-gray-200 hover:bg-white/[0.07]"
+              }`}
+            >
+              {tag === "all" ? "🔥 All Tags" : `#${tag}`}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="mb-6 flex items-center gap-2 border-b border-white/10 pb-3 text-xs text-slate-400">
         <button
@@ -472,6 +776,21 @@ export function AIHubPage() {
         >
           My Collection · {savedPackages.length}
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("images");
+            setShowCollection(true);
+          }}
+          aria-pressed={activeTab === "images"}
+          className={`rounded-full px-3 py-1.5 ${activeTab === "images" ? "bg-cyan-400/10 text-cyan-200" : ""}`}
+        >
+          Generated Images ·{" "}
+          {imagePackages.reduce(
+            (count, pkg) => count + (pkg.media.images?.length ?? 0),
+            0,
+          )}
+        </button>
         <span className="ml-auto">
           {network?.peerCount ?? 0} peers · {colibriPeers.length} inference
           nodes
@@ -480,6 +799,37 @@ export function AIHubPage() {
       {!isHubReady ? (
         <div className="py-16 text-center text-sm text-slate-400">
           Loading AI packages…
+        </div>
+      ) : activeTab === "images" ? (
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          {imagePackages.flatMap((pkg) =>
+            (pkg.media.images ?? []).map((image) => (
+              <button
+                key={`${pkg.id}-${image.id}`}
+                type="button"
+                onClick={() => {
+                  setSelectedPackage(pkg);
+                  setDetailImagePrompt(image.prompt);
+                }}
+                className="overflow-hidden rounded-2xl border-white/10 bg-[#12141e] text-left hover:border-cyan-300/30"
+              >
+                <img
+                  src={image.thumbnailUrl || image.url}
+                  alt={image.title}
+                  className="aspect-[3/4] w-full object-cover"
+                />
+                <span className="block p-3 text-xs text-slate-200">
+                  {pkg.metadata.name} · {image.title}
+                </span>
+              </button>
+            )),
+          )}
+          {imagePackages.length === 0 && (
+            <div className="col-span-full py-16 text-center text-sm text-slate-400">
+              Generated portraits will appear here after saving them to a
+              character.
+            </div>
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-3xl border-dashed border-white/10 py-16 text-center">
@@ -509,6 +859,17 @@ export function AIHubPage() {
       {selectedPackage && (
         <PackageDetailOverlay
           pkg={selectedPackage}
+          isGenerating={isGenerating}
+          comfyuiOnline={Boolean(comfyuiStatus?.online)}
+          prompt={detailImagePrompt}
+          onPromptChange={setDetailImagePrompt}
+          onGenerateImage={(pkg) =>
+            void handleGenerateForPackage(
+              pkg,
+              detailImagePrompt,
+              selectedStyleId,
+            )
+          }
           onClose={() => setSelectedPackage(null)}
           onChat={handleChat}
           onClone={handleClone}
@@ -522,6 +883,11 @@ export function AIHubPage() {
 
 interface PackageDetailOverlayProps {
   pkg: AIPackage;
+  isGenerating: boolean;
+  comfyuiOnline: boolean;
+  prompt: string;
+  onPromptChange: (prompt: string) => void;
+  onGenerateImage: (pkg: AIPackage) => void;
   onClose: () => void;
   onChat: (pkg: AIPackage) => void;
   onClone: (pkg: AIPackage) => void;
@@ -531,6 +897,11 @@ interface PackageDetailOverlayProps {
 
 function PackageDetailOverlay({
   pkg,
+  isGenerating,
+  comfyuiOnline,
+  prompt,
+  onPromptChange,
+  onGenerateImage,
   onClose,
   onChat,
   onClone,
@@ -653,6 +1024,56 @@ function PackageDetailOverlay({
             </div>
           )}
 
+          <section className="space-y-3 rounded-2xl border-cyan-300/15 bg-cyan-300/[0.04] p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-white">
+                  ComfyUI Portrait Studio
+                </h3>
+                <p className="mt-1 text-xs text-slate-400">
+                  생성 이미지는 이 캐릭터의 Images collection에 저장됩니다.
+                </p>
+              </div>
+              <span
+                className={`rounded-full px-2.5 py-1 text-[10px] ${comfyuiOnline ? "bg-emerald-400/10 text-emerald-300" : "bg-slate-400/10 text-slate-400"}`}
+              >
+                {comfyuiOnline ? "ComfyUI ready" : "Set up in Images tab"}
+              </span>
+            </div>
+            <label className="block text-xs text-slate-300">
+              Portrait prompt
+              <textarea
+                value={prompt}
+                onChange={(event) => onPromptChange(event.target.value)}
+                rows={3}
+                placeholder={`Describe ${pkg.metadata.name}'s portrait...`}
+                className="mt-1.5 w-full resize-y rounded-xl border-white/10 bg-[#13141f] px-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:border-cyan-300/50 focus:outline-none"
+              />
+            </label>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <button
+                type="button"
+                disabled={isGenerating || !comfyuiOnline || !prompt.trim()}
+                onClick={() => onGenerateImage(pkg)}
+                className="w-full rounded-xl bg-candy-gradient px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isGenerating ? "Generating portrait…" : "✨ Generate portrait"}
+              </button>
+            </div>
+            {(pkg.media.images?.length ?? 0) > 0 && (
+              <div className="grid grid-cols-4 gap-2">
+                {pkg.media.images?.map((image) => (
+                  <img
+                    key={image.id}
+                    src={image.thumbnailUrl || image.url}
+                    alt={image.title}
+                    title={image.title}
+                    className="aspect-[3/4] w-full rounded-lg object-cover"
+                  />
+                ))}
+              </div>
+            )}
+          </section>
           <div className="flex gap-3 pt-2">
             <button
               type="button"

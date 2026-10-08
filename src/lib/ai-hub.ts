@@ -16,6 +16,7 @@
 
 import type { CompanionProfile } from "@/components/CompanionChat";
 import { CharacterCardParser } from "@/lib/character-card";
+import { ComfyUIClient } from "@/lib/comfyui-client";
 import { ModelDistributor } from "@/lib/model-distributor";
 import type { TrysteroP2PClient } from "@/lib/trystero-client";
 import type {
@@ -25,9 +26,13 @@ import type {
   AIPackageExport,
   AIPackageMedia,
   AIPackageMetadata,
+  ComfyUIWorkflow,
   ForkRecord,
+  GalleryItem,
+  ImageAsset,
   MCPToolRef,
   ShareResult,
+  StylePreset,
   TrendingAIPackage,
 } from "@/types/ai-package";
 import type { CharacterCard } from "@/types/character";
@@ -70,6 +75,14 @@ const DEFAULT_MCP_TOOLS: MCPToolRef[] = [
     url: "mcp://restaurant",
     description: "Restaurant recommendations",
   },
+  {
+    id: "prompts-chat",
+    name: "Prompts.Chat",
+    url: "mcp://prompts.chat",
+    icon: "📚",
+    description:
+      "Public domain prompt library — 143k+ curated prompts for AI chat models. Provides prompt discovery and categories.",
+  },
 ];
 
 export class AIHub {
@@ -78,8 +91,12 @@ export class AIHub {
   private client: TrysteroP2PClient | null = null;
   private unsubscribePackage: (() => void) | null = null;
   private distributor = new ModelDistributor();
+  private comfyui: ComfyUIClient | null = null;
   private trendingScores = new Map<string, number>();
   private packagePeers = new Map<string, Set<string>>();
+  private stylePresets = new Map<string, StylePreset>();
+  private workflows = new Map<string, ComfyUIWorkflow>();
+  private imageAssets = new Map<string, ImageAsset>();
 
   private genId(): string {
     return typeof crypto !== "undefined" && crypto.randomUUID
@@ -520,6 +537,277 @@ export class AIHub {
   private _serializeForNetwork(pkg: AIPackage): AIPackage {
     return this._deepClonePackage(pkg);
   }
+
+  // ---- ComfyUI integration ----
+
+  setComfyUIClient(client: ComfyUIClient): void {
+    this.comfyui = client;
+  }
+
+  getComfyUIClient(): ComfyUIClient | null {
+    return this.comfyui;
+  }
+
+  setComfyUIUrl(url: string): void {
+    this.comfyui = new ComfyUIClient(url);
+  }
+
+  async getComfyUIStatus() {
+    if (!this.comfyui) return { online: false, models: [] };
+    return this.comfyui.getStatus();
+  }
+
+  /**
+   * Create a style preset for character image generation.
+   */
+  createStylePreset(opts: {
+    name: string;
+    description: string;
+    promptTemplate: string;
+    negativePrompt?: string;
+    model?: string;
+    width?: number;
+    height?: number;
+    steps?: number;
+    cfg?: number;
+    sampler?: string;
+    previewUrls?: string[];
+    tags?: string[];
+    isPublic?: boolean;
+  }): StylePreset {
+    const style: StylePreset = {
+      id: this.genId(),
+      name: opts.name,
+      description: opts.description,
+      promptTemplate: opts.promptTemplate,
+      negativePrompt: opts.negativePrompt,
+      model: opts.model,
+      width: opts.width,
+      height: opts.height,
+      steps: opts.steps,
+      cfg: opts.cfg,
+      sampler: opts.sampler,
+      previewUrls: opts.previewUrls,
+      tags: opts.tags ?? [],
+      isPublic: opts.isPublic ?? false,
+    };
+    this.stylePresets.set(style.id, style);
+    return style;
+  }
+
+  getAllStylePresets(): StylePreset[] {
+    return Array.from(this.stylePresets.values());
+  }
+
+  getStylePreset(id: string): StylePreset | undefined {
+    return this.stylePresets.get(id);
+  }
+
+  /**
+   * Create a ComfyUI workflow from a text prompt and optional style preset.
+   */
+  createWorkflow(
+    pkgId: string,
+    workflowName: string,
+    opts: {
+      prompt: string;
+      negativePrompt?: string;
+      model?: string;
+      width?: number;
+      height?: number;
+      steps?: number;
+      cfg?: number;
+      sampler?: string;
+      seed?: number;
+      stylePresetId?: string;
+    },
+  ): ComfyUIWorkflow | null {
+    if (!this.comfyui) return null;
+
+    const pkg = this.packages.get(pkgId);
+    const style = opts.stylePresetId
+      ? this.stylePresets.get(opts.stylePresetId)
+      : undefined;
+
+    const merged = {
+      prompt: opts.prompt,
+      negativePrompt: opts.negativePrompt ?? style?.negativePrompt,
+      model: opts.model ?? style?.model,
+      width: opts.width ?? style?.width,
+      height: opts.height ?? style?.height,
+      steps: opts.steps ?? style?.steps,
+      cfg: opts.cfg ?? style?.cfg,
+      sampler: opts.sampler ?? style?.sampler,
+      seed: opts.seed,
+    };
+
+    const workflow = this.comfyui.createWorkflowFromPrompt(
+      `wf_${this.genId()}`,
+      workflowName,
+      merged,
+    );
+
+    this.workflows.set(workflow.id, workflow);
+
+    if (pkg) {
+      if (!pkg.media.workflows) pkg.media.workflows = [];
+      if (!pkg.media.workflows.some((w) => w.id === workflow.id)) {
+        pkg.media.workflows.push(workflow);
+      }
+      this._publishLocal(pkg);
+    }
+
+    return workflow;
+  }
+
+  /**
+   * Get all workflows attached to a package.
+   */
+  getWorkflows(pkgId: string): ComfyUIWorkflow[] {
+    const pkg = this.packages.get(pkgId);
+    return pkg?.media.workflows ?? [];
+  }
+
+  /**
+   * Submit an image generation job to ComfyUI.
+   */
+  async generateImage(
+    pkgId: string,
+    workflow: ComfyUIWorkflow,
+  ): Promise<{ jobId: string; status: string } | { error: string }> {
+    if (!this.comfyui) {
+      return { error: "ComfyUI client not configured" };
+    }
+
+    const status = await this.comfyui.getStatus();
+    if (!status.online) {
+      return { error: "ComfyUI is not online" };
+    }
+
+    const pkg = this.packages.get(pkgId);
+    const job = await this.comfyui.submitWorkflow(workflow);
+
+    if (job.status === "failed") {
+      return { error: job.error ?? "Workflow submission failed" };
+    }
+
+    if (pkg) {
+      if (!pkg.config.comfyuiUrl) pkg.config.comfyuiUrl = status.url;
+      this._publishLocal(pkg);
+    }
+
+    return { jobId: job.id, status: job.status };
+  }
+
+  /**
+   * Wait for an image generation job to complete.
+   */
+  async waitForImage(
+    jobId: string,
+    timeoutMs = 60000,
+  ): Promise<ImageAsset | null> {
+    if (!this.comfyui) return null;
+    const job = await this.comfyui.waitForJob(jobId, timeoutMs);
+    if (job.status === "completed" && job.image) {
+      this.imageAssets.set(job.image.id, job.image);
+      return job.image;
+    }
+    return null;
+  }
+
+  /**
+   * Get all generated images for a package.
+   */
+  getPackageImages(pkgId: string): ImageAsset[] {
+    const pkg = this.packages.get(pkgId);
+    if (!pkg) return [];
+    const pkgImages = pkg.media.images ?? [];
+    return [...pkgImages];
+  }
+
+  /**
+   * Add an image asset to a package.
+   */
+  addImageAsset(pkgId: string, image: ImageAsset): AIPackage | null {
+    const pkg = this.packages.get(pkgId);
+    if (!pkg) return null;
+    if (!pkg.media.images) pkg.media.images = [];
+    if (!pkg.media.images.some((img) => img.id === image.id)) {
+      pkg.media.images.push(image);
+    }
+    this.imageAssets.set(image.id, image);
+    this._publishLocal(pkg);
+    return pkg;
+  }
+
+  /**
+   * Get all image assets.
+   */
+  getAllImages(): ImageAsset[] {
+    const pkgImages: ImageAsset[] = [];
+    for (const pkg of this.packages.values()) {
+      if (pkg.media.images) pkgImages.push(...pkg.media.images);
+    }
+    return [...pkgImages, ...Array.from(this.imageAssets.values())];
+  }
+
+  /**
+   * Get all gallery items for a package (merged from gallery + images + galleryItems).
+   */
+  getGalleryItems(pkgId: string): GalleryItem[] {
+    const pkg = this.packages.get(pkgId);
+    if (!pkg) return [];
+
+    const items: GalleryItem[] = [];
+    const galleryUrls = pkg.media.gallery ?? [];
+    const images = pkg.media.images ?? [];
+
+    galleryUrls.forEach((url, idx) => {
+      items.push({
+        id: `${pkg.id}-gallery-${idx}`,
+        type: "image",
+        url,
+        title: `${pkg.metadata.name} Gallery ${idx + 1}`,
+        description: pkg.metadata.description,
+        isUnlocked: true,
+      });
+    });
+
+    for (const img of images) {
+      items.push({
+        id: img.id,
+        type: "image",
+        url: img.url,
+        thumbnailUrl: img.thumbnailUrl,
+        title: img.title,
+        description: img.description,
+        isUnlocked: true,
+        prompt: img.prompt,
+        metadata: {
+          model: img.model,
+          width: img.width,
+          height: img.height,
+          seed: img.seed,
+          steps: img.steps,
+          cfg: img.cfg,
+          sampler: img.sampler,
+        },
+      });
+    }
+
+    if (pkg.galleryItems) {
+      items.push(...pkg.galleryItems);
+    }
+
+    return items;
+  }
+
+  /**
+   * Get trend scores per package for UI ordering.
+   */
+  getTrendingScores(): Map<string, number> {
+    return new Map(this.trendingScores);
+  }
 }
 
 export { AI_PACKAGE_ACTION, DEFAULT_CONFIG, DEFAULT_MEDIA, DEFAULT_MCP_TOOLS };
@@ -529,9 +817,13 @@ export type {
   AIPackageExport,
   AIPackageMedia,
   AIPackageMetadata,
+  ComfyUIWorkflow,
   ForkRecord,
+  GalleryItem,
+  ImageAsset,
   MCPToolRef,
   ShareResult,
+  StylePreset,
   TrendingAIPackage,
   AIHubStats,
 };
