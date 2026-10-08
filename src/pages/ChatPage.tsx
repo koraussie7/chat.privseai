@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CompanionChat, type CompanionProfile, type UIMessage } from "@/components/CompanionChat";
+import { CompanionChat, type CompanionProfile } from "@/components/CompanionChat";
 import { api } from "@/lib/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
@@ -32,8 +32,8 @@ const BUILTIN: CompanionProfile[] = [
 ];
 
 export function ChatPage() {
-	const [companions, setCompanions] = useState<CompanionProfile[]>(BUILTIN);
-	const [activeId, setActiveId] = useState("luna");
+	const [companions] = useState<CompanionProfile[]>(BUILTIN);
+	const [activeId] = useState("luna");
 	const { user, quota, isAuthenticated } = useAuth();
 	const { colibriPeers } = useTrystero();
 	const navigate = useNavigate();
