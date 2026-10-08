@@ -1,0 +1,151 @@
+{
+  "name": "PrivseAI - Generate and Publish Luna Featured Image (Candy AI-inspired)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "manual-trigger",
+      "name": "Manual Test (start here)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 7
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Weekly Schedule (enable after testing)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 500]
+    },
+    {
+      "parameters": {
+        "filePath": "/data/privseai/luna-featured-prompt.txt"
+      },
+      "id": "read-prompt",
+      "name": "Read prompt from mounted file",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [480, 400],
+      "notesInFlow": true,
+      "notes": "Mount/copy public/images/luna-featured-prompt.txt to this path on the n8n host. It contains the Candy AI-inspired visual direction. Alternatively replace with an HTTP Request to a private raw-file URL."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_IMAGE_PROVIDER.example/v1/images/generations",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ prompt: $json.prompt || $json.data, size: '1024x1280', output_format: 'webp' }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        }
+      },
+      "id": "generate-image",
+      "name": "Generate Image (configure provider + credential)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 400],
+      "notesInFlow": true,
+      "notes": "Candy AI-inspired visual direction: polished romantic virtual-companion portrait, soft warm lighting, refined pink/plum palette, expressive adult fictional character, tasteful and non-explicit. Configure provider endpoint, auth credential, request body, and response binary property. No provider credential is included."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_IMAGE_CDN.example/api/upload",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "key",
+              "value": "privseai/luna-featured-{{$now.toMillis()}}.webp"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "upload-image",
+      "name": "Upload Image (configure storage + credential)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 400],
+      "notesInFlow": true,
+      "notes": "Replace the URL and form fields with your object storage/CDN upload API. Configure node credentials in n8n; response must include a stable public URL in `url`."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR_DEPLOYMENT_WEBHOOK.example/api/featured-image",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ characterId: 'luna', avatarUrl: $json.url, generatedAt: $now.toISO() }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "publish-featured-image",
+      "name": "Publish URL to site (configure secure deployment webhook)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 400],
+      "notesInFlow": true,
+      "notes": "Placeholder. Point to an authenticated backend or GitHub workflow-dispatch endpoint that updates the asset/source and triggers deployment. Never expose tokens in this workflow export or frontend."
+    }
+  ],
+  "connections": {
+    "Manual Test (start here)": {
+      "main": [[{"node": "Read prompt from mounted file", "type": "main", "index": 0}]]
+    },
+    "Weekly Schedule (enable after testing)": {
+      "main": [[{"node": "Read prompt from mounted file", "type": "main", "index": 0}]]
+    },
+    "Read prompt from mounted file": {
+      "main": [[{"node": "Generate Image (configure provider + credential)", "type": "main", "index": 0}]]
+    },
+    "Generate Image (configure provider + credential)": {
+      "main": [[{"node": "Upload Image (configure storage + credential)", "type": "main", "index": 0}]]
+    },
+    "Upload Image (configure storage + credential)": {
+      "main": [[{"node": "Publish URL to site (configure secure deployment webhook)", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "versionId": "privseai-featured-image-template-v1",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["privseai", "image-automation", "template"]
+}

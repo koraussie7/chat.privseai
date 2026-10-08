@@ -83,6 +83,14 @@ const DEFAULT_MCP_TOOLS: MCPToolRef[] = [
     description:
       "Public domain prompt library — 143k+ curated prompts for AI chat models. Provides prompt discovery and categories.",
   },
+  {
+    id: "spicyapi",
+    name: "SpicyAPI",
+    url: "mcp://spicyapi",
+    icon: "🔞",
+    description:
+      "NSFW image/video/voice generation via Spicy API MCP server. Use sandbox keys for free testing. 18+ only.",
+  },
 ];
 
 export class AIHub {

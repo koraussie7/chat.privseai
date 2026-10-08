@@ -58,8 +58,20 @@ export function CandyChat({
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Relationship affinity progress
-  const [affinity, setAffinity] = useState<number>(companion.stage * 100 + 40);
+  // Relationship affinity progress: restore the saved stage on chat re-entry.
+  const progressKey = "privseai_candy_relationship_progress";
+  const [affinity, setAffinity] = useState<number>(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(progressKey) || "{}",
+      ) as Record<string, { stage?: number }>;
+      return (
+        Math.max(companion.stage, saved[companion.id]?.stage ?? 0) * 100 + 40
+      );
+    } catch {
+      return companion.stage * 100 + 40;
+    }
+  });
   const currentStage = Math.min(
     Math.floor(affinity / 100),
     STAGE_TITLES.length - 1,
@@ -68,6 +80,18 @@ export function CandyChat({
 
   // Gift fly animation
   const [giftAnimation, setGiftAnimation] = useState<string | null>(null);
+
+  const updateAffinity = (amount: number) => {
+    setAffinity((current) => {
+      const next = current + amount;
+      const nextStage = Math.min(
+        Math.floor(next / 100),
+        STAGE_TITLES.length - 1,
+      );
+      if (nextStage > currentStage) onStageProgress?.(nextStage);
+      return next;
+    });
+  };
 
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +120,16 @@ export function CandyChat({
     }
 
     setMessages(initial);
-    setAffinity(companion.stage * 100 + 40);
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem(progressKey) || "{}",
+      ) as Record<string, { stage?: number }>;
+      setAffinity(
+        Math.max(companion.stage, saved[companion.id]?.stage ?? 0) * 100 + 40,
+      );
+    } catch {
+      setAffinity(companion.stage * 100 + 40);
+    }
   }, [companion]);
 
   useEffect(() => {
@@ -192,7 +225,7 @@ export function CandyChat({
       };
       setMessages((prev) => [...prev, selfieMsg]);
       setIsTyping(false);
-      setAffinity((prev) => prev + 25);
+      updateAffinity(25);
     }, 1800);
   };
 
@@ -223,7 +256,7 @@ export function CandyChat({
       };
       setMessages((prev) => [...prev, voiceMsg]);
       setIsTyping(false);
-      setAffinity((prev) => prev + 20);
+      updateAffinity(20);
     }, 1500);
   };
 
@@ -249,7 +282,7 @@ export function CandyChat({
   // Send Gift
   const handleSendGift = (gift: (typeof GIFTS)[0]) => {
     setGiftAnimation(gift.icon);
-    setAffinity((prev) => prev + gift.exp);
+    updateAffinity(gift.exp);
 
     const userMsg: CandyMessage = {
       id: crypto.randomUUID(),

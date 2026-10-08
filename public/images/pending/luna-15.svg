@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" role="img" aria-label="별을 세는 손가락 생성 대기">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#101426"/>
+      <stop offset="55%" stop-color="#171c33"/>
+      <stop offset="100%" stop-color="#0c0f1d"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c08cb0" stop-opacity="0.32"/>
+      <stop offset="100%" stop-color="#c08cb0" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="420" fill="url(#glow)"/>
+  <g stroke="#ffffff" stroke-opacity="0.05">
+    <line x1="0" y1="250" x2="800" y2="250"/>
+    <line x1="0" y1="500" x2="800" y2="500"/>
+    <line x1="0" y1="750" x2="800" y2="750"/>
+    <line x1="200" y1="0" x2="200" y2="1000"/>
+    <line x1="400" y1="0" x2="400" y2="1000"/>
+    <line x1="600" y1="0" x2="600" y2="1000"/>
+  </g>
+  <rect x="0" y="0" width="800" height="10" fill="#c08cb0"/>
+  <text x="56" y="120" fill="#c08cb0" font-family="ui-monospace, Menlo, monospace" font-size="30" letter-spacing="4">LUNA-15</text>
+  <text x="56" y="470" fill="#f4f2ee" font-family="-apple-system, 'Apple SD Gothic Neo', sans-serif" font-size="52" font-weight="700">별을 세는 손가락</text>
+  <text x="56" y="530" fill="#9aa0b8" font-family="-apple-system, 'Apple SD Gothic Neo', sans-serif" font-size="30">창가 별빛 · Luna · 클로즈업 · 4:5</text>
+  <g transform="translate(56, 852)">
+    <rect width="220" height="72" rx="36" fill="none" stroke="#c08cb0" stroke-width="2"/>
+    <text x="110" y="46" text-anchor="middle" fill="#c08cb0" font-family="-apple-system, 'Apple SD Gothic Neo', sans-serif" font-size="28">생성 대기</text>
+  </g>
+  <text x="56" y="956" fill="#5b6076" font-family="ui-monospace, Menlo, monospace" font-size="24">stage 0 · CU · OPEN-DESIGN-SHOTLIST</text>
+</svg>

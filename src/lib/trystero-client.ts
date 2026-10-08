@@ -44,6 +44,22 @@ export type TrysteroStrategy =
 const DEFAULT_CONFIG: TrysteroConfig = {
 	appId: "privseai-p2pclaw",
 	strategy: "nostr",
+	// Override trystero's default nostr relay list: bendernostur.duckdns.org:8443
+	// has an expired TLS certificate (expired 2026-10-05), which blocks signaling.
+	// Only relays with valid certificates are listed here.
+	relayConfig: {
+		urls: [
+			"wss://0x-nostr-relay.fly.dev",
+			"wss://nos.lol",
+			"wss://nostr.rblb.it",
+			"wss://cdn.satellite.earth",
+			"wss://relay.nostrmap.net",
+			"wss://nostr.red5d.dev",
+			"wss://nostr.stakey.net",
+			"wss://nostrcity-club.fly.dev",
+			"wss://relay.aarpia.com",
+		],
+	},
 };
 
 export interface PeerInfo {
