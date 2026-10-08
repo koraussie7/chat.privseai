@@ -210,6 +210,10 @@ export class ModelDistributor {
 		this.localCache.clear();
 		this.peerModels.clear();
 	}
+
+	get cachedModelCount(): number {
+		return this.localCache.size;
+	}
 }
 
 export { CHUNK_SIZE };

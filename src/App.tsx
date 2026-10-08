@@ -4,6 +4,7 @@ import { CandySidebar } from "@/components/CandySidebar";
 import { CandyDiscover } from "@/components/CandyDiscover";
 import { CandyCollection } from "@/components/CandyCollection";
 import { CandyChatPage } from "@/pages/CandyChatPage";
+import { AIHubPage } from "@/pages/AIHubPage";
 import { CreateCompanionModal } from "@/components/CreateCompanionModal";
 import { WorldCockpit } from "@/components/WorldCockpit";
 import { LiveEvents } from "@/components/LiveEvents";
@@ -109,11 +110,11 @@ export function App() {
 								📸 Gallery & Memories
 							</NavLink>
 							<NavLink
-								to="/world"
+								to="/hub"
 								onClick={() => setMobileNavOpen(false)}
 								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
 							>
-								🌐 P2P Mesh Cockpit
+								🧠 AI Hub
 							</NavLink>
 						</div>
 					)}
@@ -138,6 +139,7 @@ export function App() {
 							/>
 							{/* Preserve original P2P utility routes for ecosystem compatibility */}
 							<Route path="/world" element={<WorldCockpit />} />
+							<Route path="/hub" element={<AIHubPage />} />
 							<Route path="/events" element={<LiveEvents />} />
 							<Route path="/forecasts" element={<ForecastLedger />} />
 							<Route path="/evidence" element={<EvidenceExplorer />} />

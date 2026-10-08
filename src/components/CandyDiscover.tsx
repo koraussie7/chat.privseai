@@ -1,6 +1,8 @@
+import type { CandyCompanion } from "@/data/candyPresets";
+import { AIHub } from "@/lib/ai-hub";
+import { CharacterCardParser } from "@/lib/character-card";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import type { CandyCompanion } from "@/data/candyPresets";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -12,6 +14,48 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTag, setSelectedTag] = useState<string>("all");
 	const navigate = useNavigate();
+	const [aiHub] = useState(() => new AIHub());
+
+	const handleShareToP2P = (comp: CandyCompanion) => {
+		const card = {
+			spec: "chara_card_v2" as const,
+			data: CharacterCardParser.profileToCard({
+				id: comp.id,
+				name: comp.name,
+				age: comp.age,
+				avatarUrl: comp.avatarUrl,
+				gallery: comp.gallery?.map((g) => g.url) ?? [],
+				bio: comp.bio,
+				relationship: comp.relationship,
+				occupation: comp.occupation,
+				hobbies: comp.hobbies,
+				personality: comp.personality,
+				stage: comp.stage,
+			}),
+		};
+
+		const pkg = aiHub.createPackage({
+			card,
+			description: comp.tagline,
+			creator: "You",
+			baseModel: "Qwen3-0.6B",
+			category: comp.category,
+			tags: [...(comp.hobbies || []), ...(comp.personality || [])],
+			media: {
+				avatarUrl: comp.avatarUrl,
+				bannerUrl: comp.bannerUrl,
+				gallery: comp.gallery?.map((g) => g.url) ?? [],
+			},
+		});
+
+		aiHub.sharePackage(pkg).then((result) => {
+			if (result.success) {
+				alert(`Shared ${pkg.metadata.name} to P2P network! 🧠`);
+			} else {
+				alert(`Share failed: ${result.error}`);
+			}
+		});
+	};
 
 	const filteredCompanions = companions.filter((comp) => {
 		if (activeCategory !== "all" && comp.category !== activeCategory) {
@@ -46,8 +90,8 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 						<span className="candy-text-gradient">AI Girlfriend</span>
 					</h1>
 					<p className="mt-3 text-sm sm:text-base text-gray-300 max-w-xl leading-relaxed">
-						현실적인 실사 모델부터 애니메 와이프까지, 완전한 프라이버시와 무제한 P2P 무료 대화를 즐겨보세요.
-						음성 메시지, 셀카 사진 요청, 커스텀 롤플레잉까지 지원합니다.
+						현실적인 실사 모델부터 애니메 와이프까지, 완전한 프라이버시와 무제한 P2P 무료 대화를
+						즐겨보세요. 음성 메시지, 셀카 사진 요청, 커스텀 롤플레잉까지 지원합니다.
 					</p>
 
 					<div className="mt-6 flex flex-wrap gap-3">
@@ -57,6 +101,13 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 							className="px-6 py-3 rounded-2xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-bold text-sm shadow-lg shadow-pink-500/25 transition-all transform hover:-translate-y-0.5"
 						>
 							+ Create Custom Character
+						</button>
+						<button
+							type="button"
+							onClick={() => navigate("/hub")}
+							className="px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/10 transition-all flex items-center gap-2"
+						>
+							🧠 AI Hub
 						</button>
 						<button
 							type="button"
@@ -187,12 +238,38 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 							</div>
 
 							{/* Floating Chat Quick-action */}
-							<div className="absolute inset-x-4 bottom-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 z-20">
+							<div className="absolute inset-x-4 bottom-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 z-20 flex gap-2">
 								<button
 									type="button"
-									className="w-full py-2.5 rounded-xl bg-candy-gradient text-white text-xs font-bold shadow-lg shadow-pink-500/30 flex items-center justify-center gap-1.5"
+									onClick={(e) => {
+										e.stopPropagation();
+										navigate(`/chat/${comp.id}`);
+									}}
+									className="flex-1 py-2.5 rounded-xl bg-candy-gradient text-white text-xs font-bold shadow-lg shadow-pink-500/30 flex items-center justify-center gap-1.5"
 								>
 									<span>💬</span> Start Chatting
+								</button>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										handleShareToP2P(comp);
+									}}
+									title="Share to P2P network"
+									className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-xs border border-white/10 transition"
+								>
+									🌐
+								</button>
+								<button
+									type="button"
+									onClick={(e) => {
+										e.stopPropagation();
+										navigate("/hub");
+									}}
+									title="View in AI Hub"
+									className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-gray-300 hover:text-white text-xs border border-white/10 transition"
+								>
+									🧠
 								</button>
 							</div>
 						</div>
@@ -202,7 +279,8 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 							<div>
 								<div className="flex items-center justify-between gap-1 mb-1">
 									<h2 className="text-base font-bold text-white group-hover:text-pink-300 transition-colors truncate">
-										{comp.name}, <span className="font-normal text-gray-400 text-sm">{comp.age}</span>
+										{comp.name},{" "}
+										<span className="font-normal text-gray-400 text-sm">{comp.age}</span>
 									</h2>
 									<span className="text-xs text-yellow-400 font-semibold">★ 4.9</span>
 								</div>

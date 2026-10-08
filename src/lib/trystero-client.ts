@@ -97,6 +97,7 @@ export class TrysteroP2PClient {
 		metrics: Set<PeerMessageHandler>;
 		task: Set<PeerMessageHandler>;
 		gateway: Set<PeerMessageHandler>;
+		aiPackage: Set<PeerMessageHandler>;
 	} = {
 		peerJoin: new Set(),
 		peerLeave: new Set(),
@@ -106,6 +107,7 @@ export class TrysteroP2PClient {
 		metrics: new Set(),
 		task: new Set(),
 		gateway: new Set(),
+		aiPackage: new Set(),
 	};
 
 	private colibriPeers: Map<string, ColibriGatewayInfo> = new Map();
@@ -209,8 +211,17 @@ export class TrysteroP2PClient {
 	}
 
 	onColibriGateway(handler: PeerMessageHandler): () => void {
-		this.handlers.gateway.add(handler);
-		return () => this.handlers.gateway.delete(handler);
+	this.handlers.gateway.add(handler);
+	return () => this.handlers.gateway.delete(handler);
+	}
+
+	onAIPackage(handler: PeerMessageHandler): () => void {
+		this.handlers.aiPackage.add(handler);
+		return () => this.handlers.aiPackage.delete(handler);
+	}
+
+	broadcastAIPackage(pkg: unknown): void {
+		this._sendAction("ai-package", pkg);
 	}
 
 	getColibriPeers(): Map<string, ColibriGatewayInfo> {
@@ -368,13 +379,18 @@ export class TrysteroP2PClient {
 			for (const handler of this.handlers.task) handler(data, peerId);
 		};
 
-		const gateway = this.room.makeAction("colibri-gateway");
+			const gateway = this.room.makeAction("colibri-gateway");
 		gateway.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-			const info = data as ColibriGatewayInfo;
-			this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
-			for (const handler of this.handlers.gateway) handler(data, peerId);
+		const info = data as ColibriGatewayInfo;
+		this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
+		for (const handler of this.handlers.gateway) handler(data, peerId);
 		};
-	}
+
+		const aiPackage = this.room.makeAction("ai-package");
+		aiPackage.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
+		for (const handler of this.handlers.aiPackage) handler(data, peerId);
+		};
+		}
 
 	private _sendAction(actionId: string, data: unknown, opts?: SendOptions): void {
 		if (!this.room) {
