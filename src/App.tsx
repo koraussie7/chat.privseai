@@ -1,121 +1,160 @@
-import { EvidenceExplorer } from "@/components/EvidenceExplorer";
-import { ForecastLedger } from "@/components/ForecastLedger";
-import { ImpactAnalysis } from "@/components/ImpactAnalysis";
-import { LiveEvents } from "@/components/LiveEvents";
-import { WorldCockpit } from "@/components/WorldCockpit";
-import { ChatPage } from "@/pages/ChatPage";
 import { useState } from "react";
-import { NavLink, Route, BrowserRouter as Router, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, NavLink } from "react-router-dom";
+import { CandySidebar } from "@/components/CandySidebar";
+import { CandyDiscover } from "@/components/CandyDiscover";
+import { CandyCollection } from "@/components/CandyCollection";
+import { CandyChatPage } from "@/pages/CandyChatPage";
+import { CreateCompanionModal } from "@/components/CreateCompanionModal";
+import { WorldCockpit } from "@/components/WorldCockpit";
+import { LiveEvents } from "@/components/LiveEvents";
+import { ForecastLedger } from "@/components/ForecastLedger";
+import { EvidenceExplorer } from "@/components/EvidenceExplorer";
+import { ImpactAnalysis } from "@/components/ImpactAnalysis";
+import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
+import { useTrystero } from "@/hooks/useTrysteroP2P";
 
-const navigation = [
-	{ to: "/", label: "Chat", shortLabel: "Chat" },
-	{ to: "/world", label: "World Cockpit", shortLabel: "World" },
-	{ to: "/events", label: "Live Events", shortLabel: "Events" },
-	{ to: "/forecasts", label: "Forecast Ledger", shortLabel: "Forecasts" },
-	{ to: "/evidence", label: "Evidence Explorer", shortLabel: "Evidence" },
-	{ to: "/impact", label: "Impact Analysis", shortLabel: "Impact" },
-];
+const STORAGE_CUSTOM = "privseai_candy_custom_companions";
 
 export function App() {
-	const [menuOpen, setMenuOpen] = useState(false);
+	const [companions, setCompanions] = useState<CandyCompanion[]>(() => {
+		const saved = localStorage.getItem(STORAGE_CUSTOM);
+		if (saved) {
+			try {
+				const custom = JSON.parse(saved);
+				return [...CANDY_PRESETS, ...custom];
+			} catch {
+				return CANDY_PRESETS;
+			}
+		}
+		return CANDY_PRESETS;
+	});
+
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+	const [mobileNavOpen, setMobileNavOpen] = useState(false);
+	const { colibriPeers, network } = useTrystero();
+	const peerCount = (network?.peers.length ?? 0) + colibriPeers.length;
+
+	const handleCreateCompanion = (newComp: CandyCompanion) => {
+		const updated = [newComp, ...companions];
+		setCompanions(updated);
+
+		const customOnly = updated.filter(
+			(c) => !CANDY_PRESETS.some((preset) => preset.id === c.id),
+		);
+		localStorage.setItem(STORAGE_CUSTOM, JSON.stringify(customOnly));
+	};
+
 	return (
 		<Router>
-			<div className="min-h-screen bg-[#070b13] text-gray-100">
-				<nav className="sticky top-0 z-50 border-b border-white/10 bg-[#070b13]/90 shadow-lg shadow-black/20 backdrop-blur-xl">
-					<div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
-						<div className="flex h-[72px] items-center justify-between gap-4">
-							<NavLink
-								to="/"
-								className="flex shrink-0 items-center gap-3"
-								aria-label="PrivseAI home"
-							>
-								<span className="flex h-10 w-10 items-center justify-center rounded-xl border-cyan-300/20 bg-cyan-300/10 text-lg font-black text-cyan-200">
-									P
-								</span>
-								<span className="leading-tight">
-									<span className="block text-sm font-semibold tracking-wide text-white">
-										PRIVSEAI
-									</span>
-									<span className="block text-[10px] font-medium uppercase tracking-[0.2em] text-slate-500">
-										P2P Companion
-									</span>
-								</span>
-							</NavLink>
-							<div className="hidden items-center gap-1 lg:flex" aria-label="Primary navigation">
-								{navigation.map((item) => (
-									<NavItem key={item.to} to={item.to} label={item.label} />
-								))}
-							</div>
-							<div className="hidden items-center gap-2 sm:flex">
-								<span className="flex items-center gap-2 rounded-full border-emerald-400/15 bg-emerald-400/[0.06] px-3 py-1.5 text-[11px] font-medium text-emerald-200/80">
-									<span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-300" /> Mesh ready
-								</span>
-							</div>
+			<div className="flex h-screen w-screen overflow-hidden bg-[#090a0f] text-gray-100 font-sans selection:bg-pink-500 selection:text-white">
+				{/* Candy Styled Desktop Sidebar */}
+				<CandySidebar
+					onOpenCreateModal={() => setIsCreateModalOpen(true)}
+					peerCount={peerCount}
+				/>
+
+				{/* Main Content Layout */}
+				<div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+					{/* Mobile Top Header */}
+					<header className="md:hidden flex h-14 items-center justify-between px-4 border-b border-white/10 bg-[#0e0f17] shrink-0 z-30">
+						<NavLink to="/" className="flex items-center gap-2">
+							<span className="w-8 h-8 rounded-xl bg-candy-gradient flex items-center justify-center text-sm shadow-md shadow-pink-500/20">
+								🍬
+							</span>
+							<span className="font-extrabold text-sm tracking-wide candy-text-gradient">
+								PRIVSEAI CANDY
+							</span>
+						</NavLink>
+
+						<div className="flex items-center gap-2">
 							<button
 								type="button"
-								className="inline-flex h-10 w-10 items-center justify-center rounded-xl border-white/10 text-slate-300 hover:bg-white/5 lg:hidden"
-								aria-label={menuOpen ? "Close navigation menu" : "Open navigation menu"}
-								aria-expanded={menuOpen}
-								onClick={() => setMenuOpen((open) => !open)}
+								onClick={() => setIsCreateModalOpen(true)}
+								className="px-2.5 py-1 rounded-xl bg-candy-gradient text-xs font-bold text-white shadow-sm"
 							>
-								<span className="text-xl leading-none" aria-hidden="true">
-									{menuOpen ? "×" : "☰"}
-								</span>
+								+ Create
+							</button>
+							<button
+								type="button"
+								onClick={() => setMobileNavOpen((v) => !v)}
+								className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center text-gray-300"
+							>
+								{mobileNavOpen ? "✕" : "☰"}
 							</button>
 						</div>
-						{menuOpen && (
-							<div
-								className="grid gap-1 border-t border-white/10 py-3 lg:hidden"
-								aria-label="Mobile navigation"
+					</header>
+
+					{/* Mobile Drawer Menu */}
+					{mobileNavOpen && (
+						<div className="md:hidden bg-[#0e0f17] border-b border-white/10 p-4 space-y-2 z-30 shrink-0">
+							<NavLink
+								to="/"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
 							>
-								{navigation.map((item) => (
-									<NavItem
-										key={item.to}
-										to={item.to}
-										label={item.shortLabel}
-										onNavigate={() => setMenuOpen(false)}
+								🔥 Discover
+							</NavLink>
+							<NavLink
+								to="/chat"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								💬 Chat
+							</NavLink>
+							<NavLink
+								to="/collection"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								📸 Gallery & Memories
+							</NavLink>
+							<NavLink
+								to="/world"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🌐 P2P Mesh Cockpit
+							</NavLink>
+						</div>
+					)}
+
+					{/* Route Screens */}
+					<main className="flex-1 flex min-h-0 w-full overflow-hidden relative">
+						<Routes>
+							<Route
+								path="/"
+								element={
+									<CandyDiscover
+										companions={companions}
+										onOpenCreate={() => setIsCreateModalOpen(true)}
 									/>
-								))}
-							</div>
-						)}
-					</div>
-				</nav>
-				<main>
-					<Routes>
-						<Route path="/" element={<ChatPage />} />
-						<Route path="/chat/:companionId" element={<ChatPage />} />
-						<Route path="/world" element={<WorldCockpit />} />
-						<Route path="/events" element={<LiveEvents />} />
-						<Route path="/forecasts" element={<ForecastLedger />} />
-						<Route path="/evidence" element={<EvidenceExplorer />} />
-						<Route path="/impact" element={<ImpactAnalysis />} />
-						<Route path="*" element={<ChatPage />} />
-					</Routes>
-				</main>
+								}
+							/>
+							<Route path="/chat" element={<CandyChatPage />} />
+							<Route path="/chat/:companionId" element={<CandyChatPage />} />
+							<Route
+								path="/collection"
+								element={<CandyCollection companions={companions} />}
+							/>
+							{/* Preserve original P2P utility routes for ecosystem compatibility */}
+							<Route path="/world" element={<WorldCockpit />} />
+							<Route path="/events" element={<LiveEvents />} />
+							<Route path="/forecasts" element={<ForecastLedger />} />
+							<Route path="/evidence" element={<EvidenceExplorer />} />
+							<Route path="/impact" element={<ImpactAnalysis />} />
+							<Route path="*" element={<CandyChatPage />} />
+						</Routes>
+					</main>
+				</div>
+
+				{/* Create Character Modal */}
+				<CreateCompanionModal
+					isOpen={isCreateModalOpen}
+					onClose={() => setIsCreateModalOpen(false)}
+					onCreate={handleCreateCompanion}
+				/>
 			</div>
 		</Router>
 	);
 }
 
-function NavItem({
-	to,
-	label,
-	onNavigate,
-}: { to: string; label: string; onNavigate?: () => void }) {
-	return (
-		<NavLink
-			end={to === "/"}
-			onClick={onNavigate}
-			to={to}
-			className={({ isActive }) =>
-				`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-					isActive
-						? "bg-blue-600 text-white"
-						: "text-gray-400 hover:text-gray-200 hover:bg-gray-800"
-				}`
-			}
-		>
-			{label}
-		</NavLink>
-	);
-}
