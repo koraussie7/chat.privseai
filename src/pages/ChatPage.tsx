@@ -97,7 +97,10 @@ export function ChatPage() {
 			const res = await fetch(api("/chat"), {
 				method: "POST",
 				credentials: "include",
-				headers: { "Content-Type": "application/json" },
+				headers: {
+					"Content-Type": "application/json",
+					...(byok ? { Authorization: `Bearer ${byok}` } : {}),
+				},
 				body: JSON.stringify({
 					companionId: companion.id,
 					message: text,
