@@ -1,4 +1,5 @@
 import { AuthGate } from "@/components/AuthGate";
+import { RequireAuth } from "@/components/RequireAuth";
 import { CandyCollection } from "@/components/CandyCollection";
 import { CandyDiscover } from "@/components/CandyDiscover";
 import { CandySidebar } from "@/components/CandySidebar";
@@ -314,20 +315,20 @@ export function App() {
 							<Route
 								path="/settings"
 								element={
-									<AuthGate>
+									<RequireAuth>
 										<AccountSettingsPage onBack={goHome} />
-									</AuthGate>
+									</RequireAuth>
 								}
 							/>
 							<Route
 								path="/settings/api-keys"
 								element={
-									<AuthGate>
+									<RequireAuth>
 										<APIKeysPage onBack={goSettings} />
-									</AuthGate>
+									</RequireAuth>
 								}
 							/>
-							<Route path="*" element={<Navigate to="/login" replace />} />
+							<Route path="*" element={<Navigate to="/collection" replace />} />
 						</Routes>
 					</main>
 				</div>

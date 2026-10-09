@@ -155,7 +155,20 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 					)}
 				</div>
 			) : (
-				<div className="p-3 border-t border-white/10 bg-[#0a0b12]">
+				<div className="p-3 border-t border-white/10 bg-[#0a0b12] space-y-2">
+					{!collapsed && (
+						<div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+							<div className="flex items-center gap-2">
+								<span className="text-sm">✨</span>
+								<span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
+									Guest Mode
+								</span>
+							</div>
+							<p className="mt-1 text-[10px] leading-relaxed text-slate-400">
+								You can browse and chat. Sign in to create companions and sync data.
+							</p>
+						</div>
+					)}
 					<NavLink
 						to="/login"
 						className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 text-pink-200 hover:from-pink-500/20 hover:to-purple-500/20 font-semibold text-sm transition-all ${
