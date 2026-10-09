@@ -125,6 +125,16 @@ export class AIHub {
 		return this.packages.get(id);
 	}
 
+	loadPackage(pkg: AIPackage): void {
+		this.packages.set(pkg.id, pkg);
+	}
+
+	loadPackages(pkgs: AIPackage[]): void {
+		for (const pkg of pkgs) {
+			if (pkg?.id) this.packages.set(pkg.id, pkg);
+		}
+	}
+
 	getTrendingPackages(): TrendingAIPackage[] {
 		return this.getAllPackages().map((pkg) => {
 			const peers = this.packagePeers.get(pkg.id);

@@ -1,7 +1,7 @@
 import { AIPackageCard } from "@/components/AIPackageCard";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
-import { AIHub } from "@/lib/ai-hub";
+import { useAIHub } from "@/hooks/useAIHub";
 import { CharacterCardParser } from "@/lib/character-card";
 import type { AIPackage } from "@/types/ai-package";
 import { useEffect, useMemo, useState } from "react";
@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 const STORAGE_KEY = "privseai_ai_packages";
 
 export function AIHubPage() {
-  const [aiHub] = useState(() => new AIHub());
+  const aiHub = useAIHub();
   const [packages, setPackages] = useState<AIPackage[]>([]);
   const [savedPackages, setSavedPackages] = useState<AIPackage[]>([]); // Saved clones/remixes.
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,6 +126,7 @@ export function AIHubPage() {
     }
     setSavedPackages(parsed);
     setPackages([...localPkgs, ...parsed]);
+    aiHub.loadPackages([...localPkgs, ...parsed]);
     setIsHubReady(true);
   }, [aiHub]);
 
