@@ -11,11 +11,21 @@
  * - Xenova/Qwen2.5-0.5B-Instruct-q4 (0.5B params, ~0.4GB)
  */
 
-import {
-	type GenerationOptions,
-	type TextGenerationPipeline,
-	pipeline,
-} from "@xenova/transformers";
+// @xenova/transformers is heavy (~MB of WASM + model weights) and ships as
+// a bare module specifier, so we must not statically import it — Vite would
+// inline the specifier into the main bundle and the browser would fail with
+// "Module not found". We load it lazily inside getPipeline() instead.
+type GenerationOptions = unknown;
+type TextGenerationPipeline = unknown;
+let _pipeline: ((...args: unknown[]) => Promise<unknown>) | null = null;
+async function getPipeline(): Promise<
+	(task: string, model: string, opts?: Record<string, unknown>) => Promise<unknown>
+> {
+	if (_pipeline) return _pipeline as never;
+	const mod = await import("@xenova/transformers");
+	_pipeline = (mod.pipeline ?? (mod as { default?: unknown }).default) as never;
+	return _pipeline as never;
+}
 
 export interface OnDeviceGenerateOptions {
 	maxTokens?: number;
@@ -157,7 +167,8 @@ export class OnDeviceLLMClient {
 			}
 
 			// Create the text generation pipeline
-			this.generator = await pipeline("text-generation", this.modelId, {
+			const p = await getPipeline();
+			const generated = await p("text-generation", this.modelId, {
 				device: "webgpu", // Try WebGPU first, fallback to wasm
 				dtype: "q4", // Use 4-bit quantization
 				progress_callback: (progress: { progress: number; status: string }) => {
@@ -167,6 +178,7 @@ export class OnDeviceLLMClient {
 					);
 				},
 			});
+			this.generator = generated as unknown as TextGenerationPipeline;
 
 			this.loadProgress = 100;
 			this.isLoading = false;
@@ -223,7 +235,7 @@ export class OnDeviceLLMClient {
 				repetition_penalty: 1.1,
 			};
 
-			const result = await this.generator(messages, generationOptions);
+			const result = await (this.generator as unknown as (m: unknown, o: unknown) => Promise<{ generated_text: string }[]>)(messages, generationOptions);
 			const generatedText = result[0]?.generated_text || "";
 			const assistantResponse = this.extractAssistantResponse(generatedText, prompt);
 
