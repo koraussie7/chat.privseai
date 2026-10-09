@@ -1,7 +1,8 @@
 import { CharacterDetailView } from "@/components/CharacterDetailView";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useAIHub } from "@/hooks/useAIHub";
-import { useMemo, useState } from "react";
+import { ageVerifier } from "@/lib/age-verification";
+import { useMemo, useState, useEffect } from "react";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -142,6 +143,26 @@ const allPhotos = useMemo(
     "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
   ];
 
+  // NSFW images (18+ only, gated by age verification)
+  const nsfwImages = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
+  ];
+
+  // Check if user is age-verified for NSFW content
+  const [isAgeVerified, setIsAgeVerified] = useState(false);
+  useEffect(() => {
+    const checkAge = async () => {
+      const result = await ageVerifier.checkAge();
+      setIsAgeVerified(result.verified);
+    };
+    checkAge();
+  }, []);
+
 	return (
 		<div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full">
 			<div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
@@ -271,6 +292,34 @@ const allPhotos = useMemo(
                   </div>
                   <div className="text-[10px] text-pink-300">
                     Gallery
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* NSFW images (18+ only) */}
+            {isAgeVerified && nsfwImages.map((url, i) => (
+              <div
+                key={`nsfw-${i}`}
+                onClick={() => {
+                  setSelectedImage(url);
+                  setSelectedImageTitle(`NSFW ${i + 1}`);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-rose-500/30 hover:border-rose-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20 group relative"
+              >
+                <img
+                  src={url}
+                  alt={`NSFW ${i + 1}`}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  🔞 NSFW
+                </div>
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    NSFW {i + 1}
+                  </div>
+                  <div className="text-[10px] text-rose-300">
+                    18+ Only
                   </div>
                 </div>
               </div>
