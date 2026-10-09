@@ -1,5 +1,5 @@
 import type { CandyCompanion } from "@/data/candyPresets";
-import { AIHub } from "@/lib/ai-hub";
+import { useAIHub } from "@/hooks/useAIHub";
 import { CharacterCardParser } from "@/lib/character-card";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +14,7 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTag, setSelectedTag] = useState<string>("all");
 	const navigate = useNavigate();
-	const [aiHub] = useState(() => new AIHub());
+	const aiHub = useAIHub();
 
 	const handleShareToP2P = (comp: CandyCompanion) => {
 		const card = {

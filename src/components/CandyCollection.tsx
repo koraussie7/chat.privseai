@@ -1,5 +1,6 @@
 import { CharacterDetailView } from "@/components/CharacterDetailView";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
+import { useAIHub } from "@/hooks/useAIHub";
 import { useMemo, useState } from "react";
 
 interface Props {
@@ -14,17 +15,21 @@ const isCustomCompanion = (companion: CandyCompanion) =>
 	!CANDY_PRESETS.some((preset) => preset.id === companion.id);
 
 export function CandyCollection({ companions, onEdit, onDelete }: Props) {
-	const [activeTab, setActiveTab] = useState<Tab>("characters");
-	const [selectedImage, setSelectedImage] = useState<string | null>(null);
-	// Track selection by ID and derive the latest companion so that edits
-	// auto-refresh the detail view and deletions auto-close it.
-	const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-	const selectedCharacter = useMemo(
-		() => companions.find((c) => c.id === selectedCharacterId) ?? null,
-		[companions, selectedCharacterId],
-	);
+  const aiHub = useAIHub();
+  const [activeTab, setActiveTab] = useState<Tab>("characters");
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [selectedImageTitle, setSelectedImageTitle] = useState<string>("");
+  // Track selection by ID and derive the latest companion so that edits
+  // auto-refresh the detail view and deletions auto-close it.
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null,
+  );
+  const selectedCharacter = useMemo(
+    () => companions.find((c) => c.id === selectedCharacterId) ?? null,
+    [companions, selectedCharacterId],
+  );
 
-	const allPhotos = useMemo(
+  const allPhotos = useMemo(
 		() =>
 			companions.flatMap((c) =>
 				c.gallery.map((g) => ({
@@ -39,29 +44,55 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 		[companions],
 	);
 
-	const unlockedPhotos = useMemo(() => allPhotos.filter((p) => p.isUnlocked), [allPhotos]);
+  const unlockedPhotos = useMemo(() => allPhotos.filter((p) => p.isUnlocked), [allPhotos]);
 
-	const tabs: { id: Tab; label: string; icon: string; count: number }[] = [
-		{
-			id: "characters",
-			label: "Characters",
-			icon: "👤",
-			count: companions.length,
-		},
-		{
-			id: "images",
-			label: "Images",
-			icon: "🖼",
-			count: unlockedPhotos.length,
-		},
-		{
-			id: "videos",
-			label: "Videos",
-			icon: "🎬",
-			count: 0,
-		},
-		{ id: "styles", label: "Styles", icon: "🎨", count: 3 },
-	];
+  // Get generated images from AIHub packages
+  const generatedImages = useMemo(() => {
+    const allImages = aiHub.getAllImages();
+    return allImages.map((img) => ({
+      id: img.id,
+      url: img.url,
+      title: img.title,
+      companionName: "AI Generated",
+      isNSFW: img.isNSFW ?? false,
+    }));
+  }, [aiHub]);
+
+  // Get generated videos from AIHub packages
+  const generatedVideos = useMemo(() => {
+    const allVideos = aiHub.getAllVideos();
+    return allVideos.map((vid) => ({
+      id: vid.id,
+      url: vid.url,
+      thumbnailUrl: vid.thumbnailUrl,
+      title: vid.title,
+      companionName: "AI Generated",
+      duration: vid.duration,
+      isNSFW: vid.isNSFW ?? false,
+    }));
+  }, [aiHub]);
+
+  const tabs: { id: Tab; label: string; icon: string; count: number }[] = [
+    {
+      id: "characters",
+      label: "Characters",
+      icon: "👤",
+      count: companions.length,
+    },
+    {
+      id: "images",
+      label: "Images",
+      icon: "🖼",
+      count: unlockedPhotos.length + generatedImages.length,
+    },
+    {
+      id: "videos",
+      label: "Videos",
+      icon: "🎬",
+      count: generatedVideos.length,
+    },
+    { id: "styles", label: "Styles", icon: "🎨", count: 3 },
+  ];
 
 	return (
 		<div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full">
@@ -155,8 +186,11 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 				<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
 					{unlockedPhotos.map((photo) => (
 						<div
-							key={`${photo.companionName}-${photo.id}`}
-							onClick={() => setSelectedImage(photo.url)}
+							key={`photo-${photo.companionId}-${photo.id}`}
+							onClick={() => {
+								setSelectedImage(photo.url);
+								setSelectedImageTitle(photo.title);
+							}}
 							className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
 						>
 							<img
@@ -165,8 +199,41 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 								className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
 							/>
 							<div className="p-2">
-								<div className="text-xs font-bold text-white truncate">{photo.title}</div>
-								<div className="text-[10px] text-pink-300">{photo.companionName}</div>
+								<div className="text-xs font-bold text-white truncate">
+									{photo.title}
+								</div>
+								<div className="text-[10px] text-pink-300">
+									{photo.companionName}
+								</div>
+							</div>
+						</div>
+					))}
+					{generatedImages.map((img) => (
+						<div
+							key={`gen-${img.id}`}
+							onClick={() => {
+								setSelectedImage(img.url);
+								setSelectedImageTitle(img.title);
+							}}
+							className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
+						>
+							<img
+								src={img.url}
+								alt={img.title}
+								className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+							/>
+							{img.isNSFW && (
+								<div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+									🔞 NSFW
+								</div>
+							)}
+							<div className="p-2">
+								<div className="text-xs font-bold text-white truncate">
+									{img.title}
+								</div>
+								<div className="text-[10px] text-pink-300">
+									{img.companionName}
+								</div>
 							</div>
 						</div>
 					))}
@@ -174,14 +241,47 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 			)}
 
 			{activeTab === "videos" && (
-				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
-					<div className="col-span-full text-center py-12 text-gray-400">
-						<div className="text-4xl mb-2">🎬</div>
-						<p className="text-sm">No videos yet.</p>
-						<p className="text-xs mt-1 opacity-60">
-							Generate short videos from your AI Hub workflows to see them here.
-						</p>
-					</div>
+				<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
+					{generatedVideos.length === 0 ? (
+						<div className="col-span-full text-center py-12 text-gray-400">
+							<div className="text-4xl mb-2">🎬</div>
+							<p className="text-sm">No videos yet.</p>
+							<p className="text-xs mt-1 opacity-60">
+								Generate short videos from your AI Hub workflows to see them
+								here.
+							</p>
+						</div>
+					) : (
+						generatedVideos.map((vid) => (
+							<div
+								key={`vid-${vid.id}`}
+								onClick={() => setSelectedImage(vid.url)}
+								className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
+							>
+								<img
+									src={vid.thumbnailUrl ?? vid.url}
+									alt={vid.title}
+									className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+								/>
+								<div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded">
+									{vid.duration}s
+								</div>
+								{vid.isNSFW && (
+									<div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+										🔞 NSFW
+									</div>
+								)}
+								<div className="p-2">
+									<div className="text-xs font-bold text-white truncate">
+										{vid.title}
+									</div>
+									<div className="text-[10px] text-pink-300">
+										{vid.companionName}
+									</div>
+								</div>
+							</div>
+						))
+					)}
 				</div>
 			)}
 
@@ -215,9 +315,14 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 					<div className="relative max-w-2xl max-h-[90vh]">
 						<img
 							src={selectedImage}
-							alt="Enlarged"
+							alt={selectedImageTitle || "Enlarged"}
 							className="rounded-3xl max-h-[85vh] w-auto object-contain border border-white/20 shadow-2xl"
 						/>
+						{selectedImageTitle && (
+							<div className="absolute bottom-4 left-4 bg-black/60 text-white text-xs px-3 py-1 rounded-lg">
+								{selectedImageTitle}
+							</div>
+						)}
 						<button
 							type="button"
 							onClick={() => setSelectedImage(null)}
