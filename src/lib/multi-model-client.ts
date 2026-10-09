@@ -54,27 +54,43 @@ export interface ModelEndpoint {
 
 const DEFAULT_ENDPOINTS: ModelEndpoint[] = [
 	{
-		name: "privseai-primary",
+		name: "privseai-api",
 		url: "https://api.privseai.com/v1/chat/completions",
-		models: ["smart", "omni", "qwen3-0.6b", "qwen2.5-7b", "llama3.2-3b"],
+		models: ["gpt-4o-mini", "gpt-4o", "gpt-4", "smart", "omni"],
 		priority: 1,
 		timeout: 15000,
 		enabled: true,
 	},
 	{
-		name: "muhanai-omniroute",
-		url: "https://omniroute.muhanai.com/v1/chat/completions",
-		models: ["omni", "smart", "auto"],
+		name: "muhanai-omni",
+		url: "https://api.muhanai.com/omni/v1/chat/completions",
+		models: ["gpt-4o-mini", "gpt-4o", "claude-3-sonnet", "claude-3-haiku", "smart"],
 		priority: 2,
 		timeout: 20000,
 		enabled: true,
 	},
 	{
-		name: "muhanai-direct",
-		url: "https://api.muhanai.com/v1/chat/completions",
-		models: ["qwen3-0.6b", "qwen2.5-7b", "llama3.2-3b", "mistral-7b"],
+		name: "openai-primary",
+		url: "https://api.openai.com/v1/chat/completions",
+		models: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "smart"],
 		priority: 3,
-		timeout: 20000,
+		timeout: 15000,
+		enabled: true,
+	},
+	{
+		name: "anthropic",
+		url: "https://api.anthropic.com/v1/messages",
+		models: ["claude-3-sonnet", "claude-3-haiku", "claude-3-opus"],
+		priority: 4,
+		timeout: 30000,
+		enabled: true,
+	},
+	{
+		name: "openrouter",
+		url: "https://openrouter.ai/api/v1/chat/completions",
+		models: ["gpt-4o-mini", "gpt-4o", "claude-3-sonnet", "llama-3.1-70b", "llama-3.1-8b", "mixtral-8x7b", "smart"],
+		priority: 5,
+		timeout: 30000,
 		enabled: true,
 	},
 ];
@@ -110,7 +126,7 @@ export class MultiModelChatClient {
 			onProgress?: (stage: string, endpoint: string) => void;
 		} = {},
 	): Promise<{ reply: string; model: string; endpoint: string }> {
-		const model = opts.model ?? "smart";
+		const model = opts.model ?? "gpt-4o-mini";
 		const temperature = opts.temperature ?? 0.7;
 		const max_tokens = opts.maxTokens ?? 512;
 
@@ -167,10 +183,33 @@ export class MultiModelChatClient {
 		const timeoutId = setTimeout(() => controller.abort(), endpoint.timeout);
 
 		try {
+			// Build request body based on API format
+			let body: string;
+			if (endpoint.name === "anthropic") {
+				// Anthropic format: messages array without system role, system as top-level
+				const systemMsg = req.messages.find((m) => m.role === "system");
+				const userAssistantMessages = req.messages.filter((m) => m.role !== "system");
+				body = JSON.stringify({
+					model: req.model,
+					messages: userAssistantMessages.map((m) => ({
+						role: m.role,
+						content: m.content,
+					})),
+					system: systemMsg?.content,
+					max_tokens: req.max_tokens ?? 512,
+					temperature: req.temperature ?? 0.7,
+					stream: false,
+				});
+				headers["anthropic-version"] = "2023-06-01";
+			} else {
+				// OpenAI-compatible format
+				body = JSON.stringify(req);
+			}
+
 			const res = await fetch(endpoint.url, {
 				method: "POST",
 				headers,
-				body: JSON.stringify(req),
+				body,
 				signal: controller.signal,
 				credentials: "include",
 			});
@@ -191,7 +230,13 @@ export class MultiModelChatClient {
 			}
 
 			const responseData = data as ChatCompletionResponse;
-			const reply = responseData.choices?.[0]?.message?.content;
+			let reply: string | undefined;
+
+			if (endpoint.name === "anthropic") {
+				reply = (responseData as unknown as { content?: Array<{ text: string }> }).content?.[0]?.text;
+			} else {
+				reply = responseData.choices?.[0]?.message?.content;
+			}
 
 			if (!reply) {
 				throw new Error(`${endpoint.name}: Empty response`);
@@ -215,7 +260,16 @@ export class MultiModelChatClient {
 
 			const start = Date.now();
 			try {
-				const res = await fetch(endpoint.url.replace("/chat/completions", "/health"), {
+				let healthUrl = endpoint.url;
+				if (endpoint.name === "anthropic") {
+					healthUrl = "https://api.anthropic.com/health";
+				} else if (endpoint.url.includes("/chat/completions")) {
+					healthUrl = endpoint.url.replace("/chat/completions", "/health");
+				} else if (endpoint.url.includes("/v1/messages")) {
+					healthUrl = endpoint.url.replace("/v1/messages", "/health");
+				}
+
+				const res = await fetch(healthUrl, {
 					method: "GET",
 					signal: AbortSignal.timeout(5000),
 				});
