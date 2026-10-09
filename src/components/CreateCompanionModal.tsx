@@ -1,18 +1,28 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AIHub } from "@/lib/ai-hub";
 import { ComfyUIClient } from "@/lib/comfyui-client";
 import type { CandyCompanion } from "@/data/candyPresets";
 
 interface Props {
   isOpen: boolean;
+  editingCompanion?: CandyCompanion | null;
   onClose: () => void;
   onCreate: (newCompanion: CandyCompanion) => void;
+  onUpdate?: (updatedCompanion: CandyCompanion) => void;
 }
 
-export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
+export function CreateCompanionModal({
+  isOpen,
+  editingCompanion = null,
+  onClose,
+  onCreate,
+  onUpdate,
+}: Props) {
+  const isEditing = editingCompanion !== null;
   const [name, setName] = useState("");
   const [age, setAge] = useState(22);
   const [category, setCategory] = useState<"realistic" | "anime">("realistic");
+  const [gender, setGender] = useState<"female" | "male">("female");
   const [personality, setPersonality] = useState("Sweet, Playful, Caring");
   const [occupation, setOccupation] = useState("College Student");
   const [relationship, setRelationship] = useState("Close Friend");
@@ -24,6 +34,21 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [genError, setGenError] = useState("");
+
+  // Prefill the form when editing an existing companion.
+  useEffect(() => {
+    if (!editingCompanion) return;
+    setName(editingCompanion.name);
+    setAge(editingCompanion.age);
+    setCategory(editingCompanion.category);
+    setGender(editingCompanion.gender);
+    setPersonality(editingCompanion.personality.join(", "));
+    setOccupation(editingCompanion.occupation);
+    setRelationship(editingCompanion.relationship);
+    setBio(editingCompanion.bio);
+    setGreeting(editingCompanion.greeting);
+    setAvatarUrl(editingCompanion.avatarUrl);
+  }, [editingCompanion]);
 
   if (!isOpen) return null;
 
@@ -48,13 +73,13 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
         ? defaultRealisticImages[0]
         : defaultAnimeImages[0]);
 
-    const newComp: CandyCompanion = {
+    const base: CandyCompanion = {
       id: `custom-${Date.now()}`,
       name: name.trim() || "My AI Companion",
       tagline: `Your custom ${category} companion`,
       age: Number(age) || 22,
       category,
-      gender: "female",
+      gender,
       isOnline: true,
       hasVoice: true,
       avatarUrl: finalAvatar,
@@ -94,7 +119,28 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
       ],
     };
 
-    onCreate(newComp);
+    if (isEditing && editingCompanion) {
+      // Preserve identity & progress-derived fields; only update editable ones.
+      const updatedComp: CandyCompanion = {
+        ...base,
+        id: editingCompanion.id,
+        stage: editingCompanion.stage,
+        isOnline: editingCompanion.isOnline,
+        hasVoice: editingCompanion.hasVoice,
+        gallery: base.avatarUrl === editingCompanion.avatarUrl
+          ? editingCompanion.gallery
+          : base.gallery,
+        scenarios: editingCompanion.scenarios?.length
+          ? editingCompanion.scenarios
+          : base.scenarios,
+        voiceAudioUrl: editingCompanion.voiceAudioUrl ?? base.voiceAudioUrl,
+        voiceDurationSec:
+          editingCompanion.voiceDurationSec ?? base.voiceDurationSec,
+      };
+      onUpdate?.(updatedComp);
+    } else {
+      onCreate(base);
+    }
     onClose();
   };
 
@@ -116,10 +162,12 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">
-              Create Your AI Girlfriend
+              {isEditing ? "Edit Your Companion" : "Create Your AI Girlfriend"}
             </h2>
             <p className="text-xs text-gray-400">
-              Candy.ai 스타일로 나만의 맞춤형 캐릭터를 만들어보세요.
+              {isEditing
+                ? "캐릭터 정보를 수정하고 저장하세요."
+                : "Candy.ai 스타일로 나만의 맞춤형 캐릭터를 만들어보세요."}
             </p>
           </div>
         </div>
@@ -152,6 +200,37 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
                 }`}
               >
                 <span>🌸</span> Anime (애니)
+              </button>
+            </div>
+          </div>
+
+          {/* Gender Selection */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
+              Gender
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setGender("female")}
+                className={`p-3 rounded-2xl border flex items-center justify-center gap-2 font-semibold transition ${
+                  gender === "female"
+                    ? "bg-pink-500/20 border-pink-500 text-pink-300 shadow-md shadow-pink-500/20"
+                    : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                <span>♀️</span> Female
+              </button>
+              <button
+                type="button"
+                onClick={() => setGender("male")}
+                className={`p-3 rounded-2xl border flex items-center justify-center gap-2 font-semibold transition ${
+                  gender === "male"
+                    ? "bg-pink-500/20 border-pink-500 text-pink-300 shadow-md shadow-pink-500/20"
+                    : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                <span>♂️</span> Male
               </button>
             </div>
           </div>
@@ -421,7 +500,7 @@ export function CreateCompanionModal({ isOpen, onClose, onCreate }: Props) {
               type="submit"
               className="w-full py-3.5 rounded-2xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-bold text-sm shadow-xl shadow-pink-500/20 transition-all transform hover:-translate-y-0.5"
             >
-              ✨ Generate & Start Chatting
+              {isEditing ? "💾 Save Changes" : "✨ Generate & Start Chatting"}
             </button>
           </div>
         </form>

@@ -2,7 +2,10 @@ import type { CandyCompanion } from "@/data/candyPresets";
 
 interface Props {
 	companion: CandyCompanion;
+	isCustom?: boolean;
 	onClose: () => void;
+	onEdit?: (companion: CandyCompanion) => void;
+	onDelete?: (id: string) => void;
 	onChat?: (companion: CandyCompanion) => void;
 	onClone?: (companion: CandyCompanion) => void;
 	onRemix?: (companion: CandyCompanion) => void;
@@ -10,7 +13,13 @@ interface Props {
 	onGenerateImage?: (companion: CandyCompanion) => void;
 }
 
-export function CharacterDetailView({ companion, onClose }: Props) {
+export function CharacterDetailView({
+	companion,
+	isCustom = false,
+	onClose,
+	onEdit,
+	onDelete,
+}: Props) {
 	const handleChat = () => {
 		window.location.href = `/chat/${encodeURIComponent(companion.id)}`;
 	};
@@ -196,6 +205,26 @@ export function CharacterDetailView({ companion, onClose }: Props) {
 							>
 								💬 Chat
 							</button>
+							{isCustom && onEdit && (
+								<button
+									type="button"
+									onClick={() => onEdit(companion)}
+									className="px-4 py-2.5 rounded-xl border border-cyan-400/30 bg-cyan-500/10 text-cyan-200 hover:text-white hover:border-cyan-400/60 font-medium text-sm"
+									title="Edit companion"
+								>
+									✏️ Edit
+								</button>
+							)}
+							{isCustom && onDelete && (
+								<button
+									type="button"
+									onClick={() => onDelete(companion.id)}
+									className="px-4 py-2.5 rounded-xl border border-rose-400/30 bg-rose-500/10 text-rose-300 hover:text-white hover:border-rose-400/60 font-medium text-sm"
+									title="Delete companion"
+								>
+									🗑 Delete
+								</button>
+							)}
 							<button
 								type="button"
 								onClick={() => {

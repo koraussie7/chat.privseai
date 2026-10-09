@@ -5,8 +5,10 @@ import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { api } from "@/lib/config";
 import { ColibriWASMClient } from "@/lib/colibri-wasm-client";
 import { GirlfriendAIClient } from "@/lib/girlfriend-ai-client";
+import { getMultiModelClient } from "@/lib/multi-model-client";
 import { PersonalityEngine } from "@/lib/personality-engine";
 import { DEFAULT_EMOTION_STATE } from "@/types/character";
+import { useTrystero } from "@/hooks/useTrysteroP2P";
 
 const STORAGE_KEY_CUSTOM = "privseai_candy_custom_companions";
 const STORAGE_KEY_PROGRESS = "privseai_candy_relationship_progress";
@@ -15,6 +17,7 @@ type CompanionProgress = Record<string, { stage: number }>;
 export function CandyChatPage() {
   const { companionId } = useParams<{ companionId?: string }>();
   const navigate = useNavigate();
+  const { colibriPeers } = useTrystero();
 
   const [progress, setProgress] = useState<CompanionProgress>(() => {
     try {
@@ -68,22 +71,14 @@ export function CandyChatPage() {
     null,
   );
   const [gfClient, setGfClient] = useState<GirlfriendAIClient | null>(null);
+  const [multiModelClient] = useState(() => getMultiModelClient());
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: "user" | "assistant"; content: string; timestamp: number }>
   >([]);
 
   useEffect(() => {
-    if (
-      typeof window !== "undefined" &&
-      window.location.hostname === "localhost"
-    ) {
-      setColibriClient(new ColibriWASMClient("http://localhost:3001"));
-      setGfClient(
-        new GirlfriendAIClient({
-          baseUrl: "http://localhost:3002",
-        }),
-      );
-    } else {
+    if (typeof window !== "undefined") {
+      setColibriClient(new ColibriWASMClient());
       setGfClient(new GirlfriendAIClient());
     }
   }, []);
@@ -195,6 +190,14 @@ export function CandyChatPage() {
         }
       }
 
+      // Find nearest non-localhost Colibri peer for distributed inference
+      const nearestColibri = colibriPeers.find(
+        (p) => !p.baseUrl.includes("localhost"),
+      );
+      const colibri = nearestColibri
+        ? { baseUrl: nearestColibri.baseUrl, model: nearestColibri.model }
+        : undefined;
+
       const res = await fetch(api("/v1/chat/completions"), {
         method: "POST",
         credentials: "include",
@@ -209,35 +212,21 @@ export function CandyChatPage() {
             ...conversationHistory,
             { role: "user", content: text },
           ],
+          colibri,
         }),
         signal: AbortSignal.timeout(10000),
       });
 
-      const data = await res.json();
+      let data: unknown;
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+      const responseData = data as Record<string, unknown>;
       if (!res.ok) {
-        if (data.error === "login_required") {
-          const reply = await tryColibriFallback(text, systemPrompt);
-          return (
-            reply ??
-            generateOfflineCompanionReply(
-              activeCompanion,
-              text,
-              conversationHistory,
-            )
-          );
-        }
-        if (data.error === "quota_exceeded") {
-          const reply = await tryColibriFallback(text, systemPrompt);
-          return (
-            reply ??
-            generateOfflineCompanionReply(
-              activeCompanion,
-              text,
-              conversationHistory,
-            )
-          );
-        }
-        const reply = await tryColibriFallback(text, systemPrompt);
+        // Tier 1.5: Multi-model client (tries all API endpoints)
+        const reply = await tryMultiModelFallback(text, systemPrompt, conversationHistory);
         return (
           reply ??
           generateOfflineCompanionReply(
@@ -248,7 +237,7 @@ export function CandyChatPage() {
         );
       }
 
-      const reply = data.choices?.[0]?.message?.content;
+      const reply = (responseData as { choices?: Array<{ message?: { content?: string } }> }).choices?.[0]?.message?.content;
       return (
         reply ??
         generateOfflineCompanionReply(
@@ -267,6 +256,33 @@ export function CandyChatPage() {
           conversationHistory,
         )
       );
+    }
+  };
+
+  const tryMultiModelFallback = async (
+    text: string,
+    systemPrompt: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+  ): Promise<string | null> => {
+    try {
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...history.map((h) => ({
+          role: h.role as "user" | "assistant",
+          content: h.content,
+        })),
+        { role: "user" as const, content: text },
+      ];
+
+      const result = await multiModelClient.chat(messages, {
+        model: "smart",
+        temperature: 0.7,
+        maxTokens: 512,
+        colibri: undefined,
+      });
+      return result.reply;
+    } catch {
+      return null;
     }
   };
 
@@ -291,17 +307,19 @@ export function CandyChatPage() {
 
     // Tier 3: Girlfriend.ai local server
     if (gfClient) {
-      const history = chatHistory.map((h) => ({
-        role: h.role as "user" | "assistant",
-        content: h.content,
-      }));
-      const result = await gfClient.chat({
-        message: text,
-        history,
-        temperature: 0.7,
-        maxTokens: 512,
-      });
-      if (result?.reply) return result.reply;
+      try {
+        const history = chatHistory.map((h) => ({
+          role: h.role as "user" | "assistant",
+          content: h.content,
+        }));
+        const result = await gfClient.chat({
+          message: text,
+          history,
+          temperature: 0.7,
+          maxTokens: 512,
+        });
+        if (result?.reply) return result.reply;
+      } catch {}
     }
 
     return null;

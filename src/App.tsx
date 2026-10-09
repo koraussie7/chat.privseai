@@ -36,7 +36,18 @@ export function App() {
   });
 
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [editingCompanion, setEditingCompanion] = useState<CandyCompanion | null>(
+    null,
+  );
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const isCustomCompanion = (companion: CandyCompanion) =>
+    !CANDY_PRESETS.some((preset) => preset.id === companion.id);
+
+  const persistCustomCompanions = (list: CandyCompanion[]) => {
+    const customOnly = list.filter((c) => isCustomCompanion(c));
+    localStorage.setItem(STORAGE_CUSTOM, JSON.stringify(customOnly));
+  };
   useEffect(() => {
     try {
       const progress = JSON.parse(
@@ -69,11 +80,30 @@ export function App() {
   const handleCreateCompanion = (newComp: CandyCompanion) => {
     const updated = [newComp, ...companions];
     setCompanions(updated);
+    persistCustomCompanions(updated);
+  };
 
-    const customOnly = updated.filter(
-      (c) => !CANDY_PRESETS.some((preset) => preset.id === c.id),
+  const handleUpdateCompanion = (updatedComp: CandyCompanion) => {
+    const updated = companions.map((c) =>
+      c.id === updatedComp.id ? updatedComp : c,
     );
-    localStorage.setItem(STORAGE_CUSTOM, JSON.stringify(customOnly));
+    setCompanions(updated);
+    persistCustomCompanions(updated);
+  };
+
+  const handleDeleteCompanion = (id: string) => {
+    const target = companions.find((c) => c.id === id);
+    if (!target || !isCustomCompanion(target)) return;
+    if (
+      !window.confirm(
+        `"${target.name}" 캐릭터를 삭제할까요? 이 작업은 되돌릴 수 없습니다.`,
+      )
+    ) {
+      return;
+    }
+    const updated = companions.filter((c) => c.id !== id);
+    setCompanions(updated);
+    persistCustomCompanions(updated);
   };
 
   return (
@@ -166,7 +196,13 @@ export function App() {
               <Route path="/chat/:companionId" element={<CandyChatPage />} />
               <Route
                 path="/collection"
-                element={<CandyCollection companions={companions} />}
+                element={
+                  <CandyCollection
+                    companions={companions}
+                    onEdit={setEditingCompanion}
+                    onDelete={handleDeleteCompanion}
+                  />
+                }
               />
               {/* Preserve original P2P utility routes for ecosystem compatibility */}
               <Route path="/world" element={<WorldCockpit />} />
@@ -180,11 +216,16 @@ export function App() {
           </main>
         </div>
 
-        {/* Create Character Modal */}
+        {/* Create / Edit Character Modal */}
         <CreateCompanionModal
-          isOpen={isCreateModalOpen}
-          onClose={() => setIsCreateModalOpen(false)}
+          isOpen={isCreateModalOpen || editingCompanion !== null}
+          editingCompanion={editingCompanion}
+          onClose={() => {
+            setIsCreateModalOpen(false);
+            setEditingCompanion(null);
+          }}
           onCreate={handleCreateCompanion}
+          onUpdate={handleUpdateCompanion}
         />
       </div>
     </Router>

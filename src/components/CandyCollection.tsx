@@ -1,14 +1,19 @@
 import { CharacterDetailView } from "@/components/CharacterDetailView";
-import type { CandyCompanion } from "@/data/candyPresets";
+import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useMemo, useState } from "react";
 
 interface Props {
   companions: CandyCompanion[];
+  onEdit?: (companion: CandyCompanion) => void;
+  onDelete?: (id: string) => void;
 }
 
 type Tab = "characters" | "images" | "styles";
 
-export function CandyCollection({ companions }: Props) {
+const isCustomCompanion = (companion: CandyCompanion) =>
+  !CANDY_PRESETS.some((preset) => preset.id === companion.id);
+
+export function CandyCollection({ companions, onEdit, onDelete }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("characters");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedCharacter, setSelectedCharacter] =
@@ -218,6 +223,9 @@ export function CandyCollection({ companions }: Props) {
       {selectedCharacter && (
         <CharacterDetailView
           companion={selectedCharacter}
+          isCustom={isCustomCompanion(selectedCharacter)}
+          onEdit={onEdit}
+          onDelete={onDelete}
           onClose={() => setSelectedCharacter(null)}
         />
       )}
