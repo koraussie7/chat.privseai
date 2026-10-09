@@ -292,4 +292,25 @@ describe("AIHub", () => {
       expect(result.error).toMatch(/ComfyUI|client|not/);
     }
   });
+
+  // Regression: generateReplacementForPlaceholderCached should be a thin
+  // wrapper that tries the cache before delegating to the live version.
+  // We can't exercise the IndexedDB cache inside happy-dom, but we can
+  // assert the API surface and confirm a no-cache run still hits the
+  // ComfyUI error path.
+  it("generateReplacementForPlaceholderCached exposes the same shape", async () => {
+    expect(typeof hub.generateReplacementForPlaceholderCached).toBe(
+      "function",
+    );
+    const card = makeTestCard("Cached");
+    const pkg = hub.createPackage({ card, creator: "c" });
+    const result = await hub.generateReplacementForPlaceholderCached(
+      pkg.id,
+      "/images/pending/luna-01.svg",
+      { prompt: "portrait" },
+    );
+    // Without ComfyUI running (and without IndexedDB) we expect an error
+    // describing the missing ComfyUI client, not a successful image.
+    expect("error" in result).toBe(true);
+  });
 });

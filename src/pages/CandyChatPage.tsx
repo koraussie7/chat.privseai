@@ -9,6 +9,8 @@ import { getMultiModelClient } from "@/lib/multi-model-client";
 import { PersonalityEngine } from "@/lib/personality-engine";
 import { DEFAULT_EMOTION_STATE } from "@/types/character";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
+import { getOnDeviceLLM } from "@/lib/on-device-llm-client";
+import { getWebLLM } from "@/lib/webllm-client";
 
 const STORAGE_KEY_CUSTOM = "privseai_candy_custom_companions";
 const STORAGE_KEY_PROGRESS = "privseai_candy_relationship_progress";
@@ -72,6 +74,8 @@ export function CandyChatPage() {
   );
   const [gfClient, setGfClient] = useState<GirlfriendAIClient | null>(null);
   const [multiModelClient] = useState(() => getMultiModelClient());
+  const [onDeviceLLM] = useState(() => getOnDeviceLLM());
+  const [webLLM] = useState(() => getWebLLM());
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: "user" | "assistant"; content: string; timestamp: number }>
   >([]);
@@ -173,6 +177,14 @@ export function CandyChatPage() {
         ? { role: "user" as const, content: h.content }
         : { role: "assistant" as const, content: h.content },
     );
+
+    // Tier 1: On-device LLM (Transformers.js / Xenova)
+    const onDeviceReply = await tryOnDeviceLLM(text, systemPrompt, conversationHistory);
+    if (onDeviceReply) return onDeviceReply;
+
+    // Tier 1b: WebLLM (WebGPU accelerated)
+    const webLLMReply = await tryWebLLM(text, systemPrompt, conversationHistory);
+    if (webLLMReply) return webLLMReply;
 
     try {
       const byok = localStorage.getItem("byok_key")?.trim();
@@ -323,6 +335,59 @@ export function CandyChatPage() {
     }
 
     return null;
+  };
+
+  const tryOnDeviceLLM = async (
+    text: string,
+    systemPrompt: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+  ): Promise<string | null> => {
+    try {
+      const { isLoading } = onDeviceLLM.getLoadingState();
+      if (isLoading) return null;
+
+      const prompt = `${systemPrompt}\n\n${conversationHistoryToPrompt(history)}\nUser: ${text}\nAssistant:`;
+      const result = await onDeviceLLM.generate(prompt, {
+        maxTokens: 512,
+        temperature: 0.7,
+        topP: 0.9,
+      });
+
+      if (result.error) return null;
+      return result.text.trim();
+    } catch {
+      return null;
+    }
+  };
+
+  const tryWebLLM = async (
+    text: string,
+    systemPrompt: string,
+    history: Array<{ role: "user" | "assistant"; content: string }>,
+  ): Promise<string | null> => {
+    try {
+      const { isLoading } = webLLM.getLoadingState();
+      if (isLoading) return null;
+
+      const messages = [
+        { role: "system" as const, content: systemPrompt },
+        ...history.map((h) => ({
+          role: h.role as "user" | "assistant",
+          content: h.content,
+        })),
+        { role: "user" as const, content: text },
+      ];
+
+      const result = await webLLM.chat(messages, {
+        maxTokens: 512,
+        temperature: 0.7,
+      });
+
+      if (result.error) return null;
+      return result.text.trim();
+    } catch {
+      return null;
+    }
   };
 
   return (
