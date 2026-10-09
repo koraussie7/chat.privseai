@@ -74,6 +74,7 @@ const allPhotos = useMemo(
           companionCategory: c.category,
           companionStage: c.stage,
           companionId: c.id,
+          isNSFW: g.isNSFW ?? false,
         })),
       ),
     [companions],
@@ -82,6 +83,9 @@ const allPhotos = useMemo(
   // Show all photos (not just unlocked) in the Images tab
   const unlockedPhotos = useMemo(() => allPhotos.filter((p) => p.isUnlocked), [allPhotos]);
   const lockedPhotos = useMemo(() => allPhotos.filter((p) => !p.isUnlocked), [allPhotos]);
+
+  // NSFW photos (18+ only, gated by age verification)
+  const nsfwPhotos = useMemo(() => allPhotos.filter((p) => p.isNSFW), [allPhotos]);
 
   // Get generated images from AIHub packages
   const generatedImages = useMemo(() => {
@@ -109,6 +113,26 @@ const allPhotos = useMemo(
     }));
   }, [aiHub, tick]);
 
+  // NSFW images (18+ only, gated by age verification)
+  const nsfwImages = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
+  ];
+
+  // Check if user is age-verified for NSFW content
+  const [isAgeVerified, setIsAgeVerified] = useState(false);
+  useEffect(() => {
+    const checkAge = async () => {
+      const result = await ageVerifier.checkAge();
+      setIsAgeVerified(result.verified);
+    };
+    checkAge();
+  }, []);
+
   const tabs: { id: Tab; label: string; icon: string; count: number }[] = [
     {
       id: "characters",
@@ -120,7 +144,7 @@ const allPhotos = useMemo(
       id: "images",
       label: "Images",
       icon: "🖼",
-      count: unlockedPhotos.length + generatedImages.length,
+      count: unlockedPhotos.length + generatedImages.length + (isAgeVerified ? nsfwPhotos.length + nsfwImages.length : 0),
     },
     {
       id: "videos",
@@ -142,26 +166,6 @@ const allPhotos = useMemo(
     "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
     "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
   ];
-
-  // NSFW images (18+ only, gated by age verification)
-  const nsfwImages = [
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
-  ];
-
-  // Check if user is age-verified for NSFW content
-  const [isAgeVerified, setIsAgeVerified] = useState(false);
-  useEffect(() => {
-    const checkAge = async () => {
-      const result = await ageVerifier.checkAge();
-      setIsAgeVerified(result.verified);
-    };
-    checkAge();
-  }, []);
 
 	return (
 		<div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full">
@@ -296,7 +300,35 @@ const allPhotos = useMemo(
                 </div>
               </div>
             ))}
-            {/* NSFW images (18+ only) */}
+            {/* NSFW images (18+ only, from character galleries) */}
+            {isAgeVerified && nsfwPhotos.map((photo) => (
+              <div
+                key={`nsfw-photo-${photo.companionId}-${photo.id}`}
+                onClick={() => {
+                  setSelectedImage(photo.url);
+                  setSelectedImageTitle(photo.title);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-rose-500/30 hover:border-rose-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20 group relative"
+              >
+                <img
+                  src={photo.url}
+                  alt={photo.title}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                  🔞 NSFW
+                </div>
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    {photo.title}
+                  </div>
+                  <div className="text-[10px] text-rose-300">
+                    {photo.companionName} · 18+ Only
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* NSFW images (18+ only, standalone) */}
             {isAgeVerified && nsfwImages.map((url, i) => (
               <div
                 key={`nsfw-${i}`}
