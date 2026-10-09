@@ -1,12 +1,21 @@
-import { NavLink } from "react-router-dom";
 import { useState } from "react";
+import { NavLink } from "react-router-dom";
+
+interface User {
+	id: string;
+	email: string;
+	name: string;
+	picture?: string;
+}
 
 interface Props {
 	onOpenCreateModal?: () => void;
 	peerCount?: number;
+	user?: User | null;
+	onLogout?: () => void;
 }
 
-export function CandySidebar({ onOpenCreateModal, peerCount = 0 }: Props) {
+export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout }: Props) {
 	const [collapsed, setCollapsed] = useState(false);
 
 	return (
@@ -52,13 +61,7 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0 }: Props) {
 					collapsed={collapsed}
 					badge="Hot"
 				/>
-				<CandyNavItem
-					to="/chat"
-					icon="💬"
-					label="Chat"
-					shortLabel="Chat"
-					collapsed={collapsed}
-				/>
+				<CandyNavItem to="/chat" icon="💬" label="Chat" shortLabel="Chat" collapsed={collapsed} />
 				<CandyNavItem
 					to="/collection"
 					icon="📸"
@@ -93,6 +96,24 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0 }: Props) {
 					)}
 				</button>
 
+				<CandyNavItem to="/hub" icon="🧠" label="AI Hub" shortLabel="Hub" collapsed={collapsed} />
+
+				<CandyNavItem
+					to="/pricing"
+					icon="💎"
+					label="Pricing"
+					shortLabel="Pricing"
+					collapsed={collapsed}
+				/>
+
+				<CandyNavItem
+					to="/settings"
+					icon="⚙️"
+					label="Settings"
+					shortLabel="Settings"
+					collapsed={collapsed}
+				/>
+
 				<CandyNavItem
 					to="/world"
 					icon="🌐"
@@ -103,26 +124,49 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0 }: Props) {
 			</div>
 
 			{/* P2P Status Badge & User Profile */}
-			<div className="p-3 border-t border-white/10 bg-[#0a0b12]">
-				<div
-					className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 ${
-						collapsed ? "justify-center" : ""
-					}`}
-				>
-					<span className="relative flex h-2.5 w-2.5">
-						<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-						<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-					</span>
-					{!collapsed && (
-						<div className="min-w-0 flex-1">
-							<div className="text-xs font-medium text-gray-200">P2P Network Free</div>
-							<div className="text-[10px] text-emerald-400 truncate">
-								{peerCount > 0 ? `${peerCount} peers linked` : "Decentralized Ready"}
+			{user ? (
+				<div className="p-3 border-t border-white/10 bg-[#0a0b12]">
+					<div
+						className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/5 ${
+							collapsed ? "justify-center" : ""
+						}`}
+					>
+						<span className="relative flex h-2.5 w-2.5">
+							<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+							<span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+						</span>
+						{!collapsed && (
+							<div className="min-w-0 flex-1">
+								<div className="text-xs font-medium text-gray-200">P2P Network Free</div>
+								<div className="text-[10px] text-emerald-400 truncate">
+									{peerCount > 0 ? `${peerCount} peers linked` : "Decentralized Ready"}
+								</div>
 							</div>
-						</div>
+						)}
+					</div>
+					{!collapsed && onLogout && (
+						<button
+							type="button"
+							onClick={onLogout}
+							className="w-full mt-2 px-3 py-2 rounded-xl text-xs text-rose-300 hover:bg-rose-500/10 transition"
+						>
+							Sign Out
+						</button>
 					)}
 				</div>
-			</div>
+			) : (
+				<div className="p-3 border-t border-white/10 bg-[#0a0b12]">
+					<NavLink
+						to="/login"
+						className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 text-pink-200 hover:from-pink-500/20 hover:to-purple-500/20 font-semibold text-sm transition-all ${
+							collapsed ? "justify-center" : ""
+						}`}
+					>
+						<span className="text-lg">👤</span>
+						{!collapsed && <span>Sign In</span>}
+					</NavLink>
+				</div>
+			)}
 		</aside>
 	);
 }
