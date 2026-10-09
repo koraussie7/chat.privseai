@@ -16,8 +16,15 @@ const isCustomCompanion = (companion: CandyCompanion) =>
 export function CandyCollection({ companions, onEdit, onDelete }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("characters");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [selectedCharacter, setSelectedCharacter] =
-    useState<CandyCompanion | null>(null);
+  // Track selection by ID and derive the latest companion so that edits
+  // auto-refresh the detail view and deletions auto-close it.
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    null,
+  );
+  const selectedCharacter = useMemo(
+    () => companions.find((c) => c.id === selectedCharacterId) ?? null,
+    [companions, selectedCharacterId],
+  );
 
   const allPhotos = useMemo(
     () =>
@@ -75,7 +82,7 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
             type="button"
             onClick={() => {
               setActiveTab(tab.id);
-              setSelectedCharacter(null);
+              setSelectedCharacterId(null);
               setSelectedImage(null);
             }}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
@@ -96,7 +103,7 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
             <button
               key={comp.id}
               type="button"
-              onClick={() => setSelectedCharacter(comp)}
+              onClick={() => setSelectedCharacterId(comp.id)}
               className="group relative cursor-pointer rounded-3xl overflow-hidden border border-white/10 bg-[#12141e] hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 flex flex-col text-left"
             >
               <div className="relative aspect-[3/4] overflow-hidden bg-gray-900">
@@ -226,7 +233,7 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
           isCustom={isCustomCompanion(selectedCharacter)}
           onEdit={onEdit}
           onDelete={onDelete}
-          onClose={() => setSelectedCharacter(null)}
+          onClose={() => setSelectedCharacterId(null)}
         />
       )}
     </div>

@@ -112,18 +112,21 @@ export interface AIPackageMetadata {
 }
 
 export interface AIPackageConfig {
-  systemPrompt: string;
-  maxTokens: number;
-  temperature: number;
-  topP: number;
-  frequencyPenalty: number;
-  presencePenalty: number;
-  mindToolsEnabled: boolean;
-  mindDailyTokens: number;
-  mindToolCallsPerDay: number;
-  vaultPath?: string;
-  telegramRelay?: boolean;
-  comfyuiUrl?: string;
+	systemPrompt: string;
+	maxTokens: number;
+	temperature: number;
+	topP: number;
+	frequencyPenalty: number;
+	presencePenalty: number;
+	mindToolsEnabled: boolean;
+	mindDailyTokens: number;
+	mindToolCallsPerDay: number;
+	vaultPath?: string;
+	telegramRelay?: boolean;
+	comfyuiUrl?: string;
+	nsfwEnabled?: boolean;
+	nsfwLevel?: "light" | "moderate" | "explicit";
+	allowOnDeviceNSFW?: boolean;
 }
 
 export interface AIPackage {

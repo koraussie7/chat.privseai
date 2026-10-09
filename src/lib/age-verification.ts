@@ -198,8 +198,26 @@ export class AgeVerification {
 export class NSFWFilter {
 	private suspiciousPatterns = SUSPICIOUS_PATTERNS;
 	private explicitKeywords = EXPLICIT_KEYWORDS;
+	private bypass = false;
+
+	constructor(opts?: { bypass?: boolean }) {
+		this.bypass = opts?.bypass ?? false;
+	}
+
+	setBypass(bypass: boolean): void {
+		this.bypass = bypass;
+	}
 
 	checkContent(text: string): NSFWCheckResult {
+		if (this.bypass) {
+			return {
+				isExplicit: false,
+				confidence: 0,
+				categories: [],
+				filtered: false,
+			};
+		}
+
 		const lower = text.toLowerCase();
 		const categories: string[] = [];
 
