@@ -1,7 +1,7 @@
 {
   "name": "privseai-trystero",
   "version": "0.1.0",
-  "description": "P2P AI inference UI for privseai.com — Trystero WebRTC signaling + muhanai Colibri WASM inference",
+  "description": "P2P AI inference UI for privseai.com \u2014 Trystero WebRTC signaling + muhanai Colibri WASM inference",
   "type": "module",
   "private": true,
   "scripts": {
@@ -11,7 +11,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "biome check src --max-diagnostics=100",
-    "lint:fix": "biome check --write src --max-diagnostics=100"
+    "lint:fix": "biome check --write src --max-diagnostics=100",
+    "deploy": "bash scripts/deploy.sh",
+    "deploy:dry": "bash scripts/deploy.sh --dry-run",
+    "deploy:skip-build": "bash scripts/deploy.sh --skip-build"
   },
   "dependencies": {
     "@trystero-p2p/ws-relay": "^0.26.0",

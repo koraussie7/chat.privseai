@@ -100,6 +100,12 @@ npm run build
 
 # Typecheck
 npx tsc --noEmit
+
+# Deploy to privseai.com (origin server 185.55.240.110, doc root /var/www/privseai)
+# Requires ~/.ssh/agentmesh_ed25519 with access to the origin host.
+npm run deploy                 # full: build + backup + rsync + verify
+npm run deploy:skip-build      # reuse current dist/ (skip npm run build)
+npm run deploy:dry             # preview the rsync without sending anything
 ```
 
 ## Configuration
