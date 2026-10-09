@@ -2,6 +2,7 @@ import { AIPackageCard } from "@/components/AIPackageCard";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { useAIHub } from "@/hooks/useAIHub";
+import { AIHub } from "@/lib/ai-hub";
 import { CharacterCardParser } from "@/lib/character-card";
 import type { AIPackage } from "@/types/ai-package";
 import { useEffect, useMemo, useState } from "react";
@@ -60,6 +61,7 @@ export function AIHubPage() {
   ]);
   const [selectedStyleId, setSelectedStyleId] = useState("candy-realism");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [detailImagePrompt, setDetailImagePrompt] = useState("");
   const navigate = useNavigate();
   const { network, colibriPeers, registerClientReady } = useTrystero();
@@ -188,6 +190,80 @@ export function AIHubPage() {
     const latest = packages.find((pkg) => pkg.id === selectedPackage.id);
     if (latest && latest !== selectedPackage) setSelectedPackage(latest);
   }, [packages, selectedPackage]);
+  // Auto-generate real images for placeholders when the browser is idle.
+  // Runs at most one generation per 30s and stops as soon as the user starts
+  // interacting (handled via the generatingId guard).
+  useEffect(() => {
+    if (!isHubReady) return;
+    if (!comfyuiStatus?.online) return;
+
+    let cancelled = false;
+    let timeoutId: number | null = null;
+
+    const scheduleNext = () => {
+      if (cancelled) return;
+      const idle =
+        (window as typeof window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+      if (typeof idle === "function") {
+        idle(() => void runOne());
+      } else {
+        timeoutId = window.setTimeout(() => void runOne(), 1500);
+      }
+    };
+
+    const runOne = async () => {
+      const target = packages.find(
+        (pkg) =>
+          !generatingId &&
+          (pkg.media?.avatarUrl?.startsWith("/images/pending/") ||
+            pkg.media?.images?.some((img) =>
+              img.url?.startsWith("/images/pending/"),
+            )),
+      );
+      if (!target) return;
+      const placeholderUrl =
+        target.media?.avatarUrl ??
+        target.media?.images?.find((img) =>
+          img.url?.startsWith("/images/pending/"),
+        )?.url ??
+        "";
+      if (!placeholderUrl) return;
+      setGeneratingId(target.id);
+      try {
+        const result = await aiHub.generateReplacementForPlaceholderCached(
+          target.id,
+          placeholderUrl,
+          {
+            prompt:
+              target.metadata.description ||
+              `Portrait of ${target.metadata.name}, ${target.metadata.tags.join(", ")}, high quality`,
+            width: 512,
+            height: 768,
+            steps: 20,
+            cfg: 7,
+            timeoutMs: 90000,
+          },
+        );
+        if (cancelled) return;
+        if (!("error" in result)) {
+          const refreshed = aiHub.getPackage(target.id) ?? target;
+          setPackages((current) =>
+            current.map((pkg) => (pkg.id === target.id ? refreshed : pkg)),
+          );
+        }
+      } finally {
+        setGeneratingId(null);
+        timeoutId = window.setTimeout(scheduleNext, 30_000);
+      }
+    };
+
+    scheduleNext();
+    return () => {
+      cancelled = true;
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+    };
+  }, [aiHub, comfyuiStatus, generatingId, isHubReady, packages]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setSelectedPackage(null);
@@ -501,6 +577,45 @@ export function AIHubPage() {
     });
   };
 
+  const handleReplacePlaceholder = async (pkg: AIPackage) => {
+    const placeholderUrl =
+      pkg.media?.avatarUrl ?? pkg.media?.images?.[0]?.url ?? "";
+    if (!placeholderUrl || !AIHub.isPlaceholderUrl(placeholderUrl)) return;
+    setGeneratingId(pkg.id);
+    try {
+      const result = await aiHub.generateReplacementForPlaceholderCached(
+        pkg.id,
+        placeholderUrl,
+        {
+          prompt:
+            pkg.metadata.description ||
+            `Portrait of ${pkg.metadata.name}, ${pkg.metadata.tags.join(", ")}, high quality`,
+          width: 512,
+          height: 768,
+          steps: 25,
+          cfg: 7,
+          timeoutMs: 90000,
+        },
+      );
+      if ("error" in result) {
+        setNotice({ kind: "error", text: result.error });
+        return;
+      }
+      const refreshed = aiHub.getPackage(pkg.id) ?? pkg;
+      setPackages((current) =>
+        current.map((item) => (item.id === pkg.id ? refreshed : item)),
+      );
+      setSelectedPackage((current) =>
+        current?.id === refreshed.id ? refreshed : current,
+      );
+      setNotice({
+        kind: "success",
+        text: `Generated real image for ${pkg.metadata.name}.`,
+      });
+    } finally {
+      setGeneratingId(null);
+    }
+  };
   const tags = [
     "all",
     "Sensual",
@@ -853,6 +968,9 @@ export function AIHubPage() {
               onClone={handleClone}
               onRemix={handleRemix}
               onShare={handleShare}
+              onReplacePlaceholder={handleReplacePlaceholder}
+              isGenerating={generatingId === pkg.id}
+              comfyuiOnline={Boolean(comfyuiStatus?.online)}
             />
           ))}
         </div>

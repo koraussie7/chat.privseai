@@ -1,3 +1,4 @@
+import { AIHub } from "@/lib/ai-hub";
 import type { AIPackage } from "@/types/ai-package";
 
 interface Props {
@@ -7,6 +8,9 @@ interface Props {
   onClone: (pkg: AIPackage) => void;
   onRemix: (pkg: AIPackage) => void;
   onShare: (pkg: AIPackage) => void;
+  onReplacePlaceholder?: (pkg: AIPackage) => void;
+  isGenerating?: boolean;
+  comfyuiOnline?: boolean;
 }
 
 export function AIPackageCard({
@@ -16,9 +20,13 @@ export function AIPackageCard({
   onClone,
   onRemix,
   onShare,
+  onReplacePlaceholder,
+  isGenerating = false,
+  comfyuiOnline = false,
 }: Props) {
   const image =
     pkg.media.avatarUrl || pkg.media.bannerUrl || pkg.card.data.src || "";
+  const isPlaceholder = AIHub.isPlaceholderUrl(image);
   return (
     <article className="group overflow-hidden rounded-3xl border-white/10 bg-[#12141e] transition hover:-translate-y-1 hover:border-cyan-400/40 hover:shadow-xl hover:shadow-cyan-950/30">
       <button
@@ -126,6 +134,21 @@ export function AIPackageCard({
           >
             🌐 Share
           </button>
+          {onReplacePlaceholder && isPlaceholder && (
+            <button
+              type="button"
+              disabled={!comfyuiOnline || isGenerating}
+              onClick={() => onReplacePlaceholder(pkg)}
+              title={
+                comfyuiOnline
+                  ? "Generate a real AI portrait via ComfyUI"
+                  : "ComfyUI is not online"
+              }
+              className="col-span-2 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 px-3 py-2.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isGenerating ? "✨ Generating…" : "✨ Generate Real Image"}
+            </button>
+          )}
         </div>
       </div>
     </article>

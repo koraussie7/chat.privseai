@@ -50,6 +50,12 @@ export function App() {
 				return merged;
 			});
 		});
+		// Preload IndexedDB-cached images so the next AIHubPage mount
+		// can restore previously generated portraits without waiting
+		// for the first ComfyUI round-trip.
+		void import("@/lib/image-cache").then(({ getAllCachedImages }) =>
+			getAllCachedImages().catch(() => []),
+		);
 		return () => {
 			cancelled = true;
 		};
