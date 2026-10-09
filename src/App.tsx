@@ -57,6 +57,11 @@ export function App() {
 		void import("@/lib/image-cache").then(({ getAllCachedImages }) =>
 			getAllCachedImages().catch(() => []),
 		);
+		// Preload the user's locale JSON chunk so the first paint of the
+		// sidebar shows translated strings instead of falling back to keys.
+		void import("@/lib/i18n").then(({ preloadI18n }) =>
+			preloadI18n().catch(() => undefined),
+		);
 		return () => {
 			cancelled = true;
 		};

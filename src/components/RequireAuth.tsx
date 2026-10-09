@@ -6,6 +6,7 @@
  * /login, so the discovery flow stays in one place.
  */
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { Link, Navigate, useLocation } from "react-router-dom";
 
 interface Props {
@@ -37,26 +38,26 @@ export function RequireAuth({ children }: Props) {
  * navigating away.
  */
 export function GuestPrompt({ action }: { action: string }) {
+	const { t } = useI18n();
 	return (
 		<div className="mx-auto my-8 max-w-md rounded-2xl border border-white/10 bg-white/[0.04] p-6 text-center text-slate-200">
 			<div className="mb-2 text-2xl">🔒</div>
-			<h3 className="text-lg font-semibold">Sign in to {action}</h3>
+			<h3 className="text-lg font-semibold">{t("guest.signInTo", { action })}</h3>
 			<p className="mt-2 text-sm text-slate-400">
-				Browsing is open to everyone. Create an account to {action.toLowerCase()},
-				save your companions across devices, and unlock the full library.
+				{t("guest.browseHint", { action: action.toLowerCase() })}
 			</p>
 			<div className="mt-4 flex justify-center gap-3">
 				<Link
 					to="/login"
 					className="rounded-xl bg-gradient-to-r from-cyan-400 to-fuchsia-500 px-4 py-2 text-sm font-semibold text-slate-900"
 				>
-					Sign in
+					{t("common.signIn")}
 				</Link>
 				<Link
 					to="/collection"
 					className="rounded-xl border border-white/15 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
 				>
-					Keep browsing
+					{t("common.keepBrowsing")}
 				</Link>
 			</div>
 		</div>

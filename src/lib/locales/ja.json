@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "PrivseAI",
+    "signIn": "ログイン",
+    "signOut": "ログアウト",
+    "loading": "読み込み中...",
+    "keepBrowsing": "閲覧を続ける",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "close": "閉じる",
+    "back": "戻る",
+    "language": "言語"
+  },
+  "guest": {
+    "badge": "ゲストモード",
+    "sidebarHint": "閲覧とチャットは可能です。コンパニオン作成とデータ同期にはログインしてください。",
+    "signInTo": "{action}するにはログイン",
+    "browseHint": "どなたでも閲覧可能です。アカウントを作成すると、{action}、デバイス間のコンパニオン同期、フルライブラリ解放などが利用できます。"
+  },
+  "sidebar": {
+    "characters": "キャラクター",
+    "chat": "チャット",
+    "hub": "AIハブ",
+    "world": "ワールド",
+    "events": "イベント",
+    "impact": "インパクト",
+    "settings": "設定",
+    "pricing": "料金",
+    "apiKeys": "APIキー"
+  },
+  "collection": {
+    "title": "コレクション",
+    "subtitle": "AIコンパニオンの全ライブラリを閲覧。",
+    "search": "キャラクター検索...",
+    "filters": "フィルター",
+    "empty": "条件に一致するコンパニオンがありません。"
+  },
+  "chat": {
+    "title": "チャット",
+    "sendPlaceholder": "メッセージを入力...",
+    "send": "送信",
+    "regenerate": "再生成",
+    "copy": "コピー",
+    "emptyState": "チャットを始めるコンパニオンを選んでください。"
+  },
+  "hub": {
+    "title": "AIハブ",
+    "subtitle": "コミュニティのコンパニオンを発見してリミックス。",
+    "generateImage": "実画像を生成",
+    "generating": "生成中…",
+    "remix": "リミックス",
+    "clone": "クローン",
+    "share": "共有",
+    "chatWith": "チャット",
+    "select": "選択"
+  },
+  "images": {
+    "featured": "おすすめ",
+    "upload": "アップロード",
+    "unlocked": "解放済み",
+    "locked": "ロック中"
+  },
+  "errors": {
+    "comfyuiOffline": "ComfyUIが起動していません。インストールして再起動してください。",
+    "workflowFailed": "ワークフローを作成できません",
+    "timedOut": "画像生成がタイムアウトしました",
+    "generationFailed": "画像生成に失敗しました",
+    "packageNotFound": "パッケージが見つかりません",
+    "loadPackagesFailed": "パッケージの読み込みに失敗"
+  },
+  "create": {
+    "title": "コンパニオン作成",
+    "name": "名前",
+    "personality": "性格",
+    "bio": "紹介",
+    "occupation": "職業",
+    "relationship": "関係",
+    "generatePortrait": "AIポートレート生成",
+    "saving": "保存中...",
+    "categoryAnime": "アニメ風",
+    "categoryRealistic": "リアル風"
+  },
+  "auth": {
+    "loginTitle": "PrivseAIにログイン",
+    "emailPlaceholder": "メールアドレス",
+    "passwordPlaceholder": "パスワード",
+    "createAccount": "アカウントを作成",
+    "forgotPassword": "パスワードを忘れた",
+    "orContinueWith": "または次の方法で続行",
+    "backToBrowse": "← 閲覧に戻る"
+  }
+}

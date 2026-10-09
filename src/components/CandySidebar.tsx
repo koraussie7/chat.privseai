@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink } from "react-router-dom";
+import { useI18n } from "@/lib/i18n";
 
 interface User {
 	id: string;
@@ -17,6 +18,14 @@ interface Props {
 
 export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout }: Props) {
 	const [collapsed, setCollapsed] = useState(false);
+	const { t, locale, setLocale } = useI18n();
+	const localeOptions: ReadonlyArray<{ code: "en" | "ko" | "ja" | "zh"; label: string; flag: string }> = [
+		{ code: "en", label: "English", flag: "🇺🇸" },
+		{ code: "ko", label: "한국어", flag: "🇰🇷" },
+		{ code: "ja", label: "日本語", flag: "🇯🇵" },
+		{ code: "zh", label: "中文", flag: "🇨🇳" },
+	];
+
 
 	return (
 		<aside
@@ -161,12 +170,30 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 							<div className="flex items-center gap-2">
 								<span className="text-sm">✨</span>
 								<span className="text-[10px] font-bold uppercase tracking-wider text-emerald-300">
-									Guest Mode
+									{t("guest.badge")}
 								</span>
 							</div>
 							<p className="mt-1 text-[10px] leading-relaxed text-slate-400">
-								You can browse and chat. Sign in to create companions and sync data.
+								{t("guest.sidebarHint")}
 							</p>
+							<div className="mt-2 flex flex-wrap gap-1">
+								{localeOptions.map((opt) => (
+									<button
+										key={opt.code}
+										type="button"
+										onClick={() => setLocale(opt.code)}
+										aria-pressed={locale === opt.code}
+										className={`flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] transition-colors ${
+											locale === opt.code
+												? "bg-emerald-500/30 text-emerald-100"
+												: "bg-white/[0.04] text-slate-400 hover:bg-white/[0.08]"
+										}`}
+									>
+										<span aria-hidden="true">{opt.flag}</span>
+										<span>{opt.label}</span>
+									</button>
+								))}
+							</div>
 						</div>
 					)}
 					<NavLink
@@ -176,7 +203,7 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 						}`}
 					>
 						<span className="text-lg">👤</span>
-						{!collapsed && <span>Sign In</span>}
+						{!collapsed && <span>{t("common.signIn")}</span>}
 					</NavLink>
 				</div>
 			)}

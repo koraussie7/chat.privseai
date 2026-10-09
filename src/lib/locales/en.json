@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "PrivseAI",
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "loading": "Loading...",
+    "keepBrowsing": "Keep browsing",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "language": "Language"
+  },
+  "guest": {
+    "badge": "Guest Mode",
+    "sidebarHint": "You can browse and chat. Sign in to create companions and sync data.",
+    "signInTo": "Sign in to {action}",
+    "browseHint": "Browsing is open to everyone. Create an account to {action}, save your companions across devices, and unlock the full library."
+  },
+  "sidebar": {
+    "characters": "Characters",
+    "chat": "Chat",
+    "hub": "AI Hub",
+    "world": "World",
+    "events": "Events",
+    "impact": "Impact",
+    "settings": "Settings",
+    "pricing": "Pricing",
+    "apiKeys": "API Keys"
+  },
+  "collection": {
+    "title": "Collection",
+    "subtitle": "Browse the full library of AI companions.",
+    "search": "Search characters...",
+    "filters": "Filters",
+    "empty": "No companions match your filters."
+  },
+  "chat": {
+    "title": "Chat",
+    "sendPlaceholder": "Type a message...",
+    "send": "Send",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "emptyState": "Select a companion to start chatting."
+  },
+  "hub": {
+    "title": "AI Hub",
+    "subtitle": "Discover and remix community companions.",
+    "generateImage": "Generate Real Image",
+    "generating": "Generating…",
+    "remix": "Remix",
+    "clone": "Clone",
+    "share": "Share",
+    "chatWith": "Chat",
+    "select": "Select"
+  },
+  "images": {
+    "featured": "Featured",
+    "upload": "Upload",
+    "unlocked": "Unlocked",
+    "locked": "Locked"
+  },
+  "errors": {
+    "comfyuiOffline": "ComfyUI is not running. Install ComfyUI and restart.",
+    "workflowFailed": "Could not create workflow",
+    "timedOut": "Image generation timed out",
+    "generationFailed": "Image generation failed",
+    "packageNotFound": "Package not found",
+    "loadPackagesFailed": "Failed to load packages"
+  },
+  "create": {
+    "title": "Create Companion",
+    "name": "Name",
+    "personality": "Personality",
+    "bio": "Bio",
+    "occupation": "Occupation",
+    "relationship": "Relationship",
+    "generatePortrait": "Generate AI Portrait",
+    "saving": "Saving...",
+    "categoryAnime": "Anime style",
+    "categoryRealistic": "Realistic style"
+  },
+  "auth": {
+    "loginTitle": "Sign in to PrivseAI",
+    "emailPlaceholder": "Email address",
+    "passwordPlaceholder": "Password",
+    "createAccount": "Create an account",
+    "forgotPassword": "Forgot password?",
+    "orContinueWith": "Or continue with",
+    "backToBrowse": "← Back to browsing"
+  }
+}

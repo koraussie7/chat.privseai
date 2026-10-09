@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "PrivseAI",
+    "signIn": "登录",
+    "signOut": "退出",
+    "loading": "加载中...",
+    "keepBrowsing": "继续浏览",
+    "save": "保存",
+    "cancel": "取消",
+    "close": "关闭",
+    "back": "返回",
+    "language": "语言"
+  },
+  "guest": {
+    "badge": "访客模式",
+    "sidebarHint": "您可以浏览和聊天。登录后可创建伙伴并同步数据。",
+    "signInTo": "登录以{action}",
+    "browseHint": "所有人都可以浏览。创建账户即可{action}、跨设备同步伙伴并解锁完整库。"
+  },
+  "sidebar": {
+    "characters": "角色",
+    "chat": "聊天",
+    "hub": "AI 中心",
+    "world": "世界",
+    "events": "事件",
+    "impact": "影响",
+    "settings": "设置",
+    "pricing": "价格",
+    "apiKeys": "API 密钥"
+  },
+  "collection": {
+    "title": "收藏",
+    "subtitle": "浏览全部 AI 伙伴库。",
+    "search": "搜索角色...",
+    "filters": "筛选",
+    "empty": "没有符合条件的伙伴。"
+  },
+  "chat": {
+    "title": "聊天",
+    "sendPlaceholder": "输入消息...",
+    "send": "发送",
+    "regenerate": "重新生成",
+    "copy": "复制",
+    "emptyState": "选择一个伙伴开始聊天。"
+  },
+  "hub": {
+    "title": "AI 中心",
+    "subtitle": "发现并混音社区伙伴。",
+    "generateImage": "生成真实图像",
+    "generating": "生成中…",
+    "remix": "混音",
+    "clone": "克隆",
+    "share": "分享",
+    "chatWith": "聊天",
+    "select": "选择"
+  },
+  "images": {
+    "featured": "精选",
+    "upload": "上传",
+    "unlocked": "已解锁",
+    "locked": "锁定"
+  },
+  "errors": {
+    "comfyuiOffline": "ComfyUI 未运行。请安装并重启。",
+    "workflowFailed": "无法创建工作流",
+    "timedOut": "图像生成超时",
+    "generationFailed": "图像生成失败",
+    "packageNotFound": "未找到包",
+    "loadPackagesFailed": "加载包失败"
+  },
+  "create": {
+    "title": "创建伙伴",
+    "name": "名称",
+    "personality": "性格",
+    "bio": "简介",
+    "occupation": "职业",
+    "relationship": "关系",
+    "generatePortrait": "生成 AI 肖像",
+    "saving": "保存中...",
+    "categoryAnime": "动漫风格",
+    "categoryRealistic": "写实风格"
+  },
+  "auth": {
+    "loginTitle": "登录 PrivseAI",
+    "emailPlaceholder": "邮箱地址",
+    "passwordPlaceholder": "密码",
+    "createAccount": "创建账户",
+    "forgotPassword": "忘记密码？",
+    "orContinueWith": "或使用以下方式继续",
+    "backToBrowse": "← 返回浏览"
+  }
+}
