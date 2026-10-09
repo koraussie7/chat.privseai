@@ -15,7 +15,7 @@ const isCustomCompanion = (companion: CandyCompanion) =>
 	!CANDY_PRESETS.some((preset) => preset.id === companion.id);
 
 export function CandyCollection({ companions, onEdit, onDelete }: Props) {
-  const aiHub = useAIHub();
+  const { aiHub, tick } = useAIHub();
   const [activeTab, setActiveTab] = useState<Tab>("characters");
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedImageTitle, setSelectedImageTitle] = useState<string>("");
@@ -90,7 +90,7 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
       companionName: "AI Generated",
       isNSFW: img.isNSFW ?? false,
     }));
-  }, [aiHub]);
+  }, [aiHub, tick]);
 
   // Get generated videos from AIHub packages
   const generatedVideos = useMemo(() => {
@@ -104,7 +104,7 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
       duration: vid.duration,
       isNSFW: vid.isNSFW ?? false,
     }));
-  }, [aiHub]);
+  }, [aiHub, tick]);
 
   const tabs: { id: Tab; label: string; icon: string; count: number }[] = [
     {

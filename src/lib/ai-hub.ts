@@ -883,11 +883,19 @@ export class AIHub {
 	/**
 	 * Wait for an image generation job to complete.
 	 */
-	async waitForImage(jobId: string, timeoutMs = 60000): Promise<ImageAsset | null> {
+	async waitForImage(
+		jobId: string,
+		pkgId?: string,
+		timeoutMs = 60000,
+	): Promise<ImageAsset | null> {
 		if (!this.comfyui) return null;
 		const job = await this.comfyui.waitForJob(jobId, timeoutMs);
 		if (job.status === "completed" && job.image) {
 			this.imageAssets.set(job.image.id, job.image);
+			// Attach to the package so it appears in CandyCollection for that character.
+			if (pkgId) {
+				this.addImageAsset(pkgId, job.image);
+			}
 			return job.image;
 		}
 		return null;

@@ -14,7 +14,7 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedTag, setSelectedTag] = useState<string>("all");
 	const navigate = useNavigate();
-	const aiHub = useAIHub();
+	const { aiHub, tick: _tick } = useAIHub();
 
 	const handleShareToP2P = (comp: CandyCompanion) => {
 		const card = {

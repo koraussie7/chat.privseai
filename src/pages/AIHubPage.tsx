@@ -10,7 +10,7 @@ import { useNavigate } from "react-router-dom";
 const STORAGE_KEY = "privseai_ai_packages";
 
 export function AIHubPage() {
-  const aiHub = useAIHub();
+  const { aiHub, tick } = useAIHub();
   const [packages, setPackages] = useState<AIPackage[]>([]);
   const [savedPackages, setSavedPackages] = useState<AIPackage[]>([]); // Saved clones/remixes.
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,7 +202,7 @@ export function AIHubPage() {
       totalPeers: network?.peerCount ?? 0,
       cachedModels: aiHub.getStats().cachedModels,
     }),
-    [aiHub, network?.peerCount, packages.length],
+    [aiHub, network?.peerCount, packages.length, tick],
   );
 
   const visiblePackages = showCollection ? savedPackages : packages;

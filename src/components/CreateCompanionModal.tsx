@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { AIHub } from "@/lib/ai-hub";
+import { useAIHub } from "@/hooks/useAIHub";
 import { ComfyUIClient } from "@/lib/comfyui-client";
+import { CharacterCardParser } from "@/lib/character-card";
 import type { CandyCompanion } from "@/data/candyPresets";
 
 interface Props {
@@ -19,6 +20,7 @@ export function CreateCompanionModal({
   onUpdate,
 }: Props) {
   const isEditing = editingCompanion !== null;
+  const { aiHub } = useAIHub();
   const [name, setName] = useState("");
   const [age, setAge] = useState(22);
   const [category, setCategory] = useState<"realistic" | "anime">("realistic");
@@ -425,10 +427,46 @@ export function CreateCompanionModal({
                     );
                     return;
                   }
-                  const aiHub = new AIHub();
+                  // Use shared AIHub singleton so images show up in CandyCollection.
                   aiHub.setComfyUIClient(comfyui);
+                  // Bind a transient draft package so the image is attached.
+                  const draftPkgId = `draft-${Date.now()}`;
+                  const draftProfile = {
+                    id: draftPkgId,
+                    name: name || "New Companion",
+                    avatarUrl: avatarUrl,
+                    bio,
+                    relationship,
+                    occupation,
+                    hobbies: ["Chatting with you"],
+                    personality: personality
+                      .split(",")
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                    stage: 1,
+                  };
+                  const draftCard = {
+                    spec: "chara_card_v2" as const,
+                    data: {
+                      ...CharacterCardParser.profileToCard(draftProfile),
+                      first_mes:
+                        greeting || `Hi, I'm ${name || "your new companion"}.`,
+                      creator: "You",
+                      character_version: "1.0",
+                      src: avatarUrl,
+                    },
+                  };
+                  aiHub.createPackage({
+                    card: draftCard,
+                    description: `Draft companion ${name}`,
+                    creator: "You",
+                    baseModel: "Qwen3-0.6B",
+                    tags: ["draft"],
+                    category: category === "anime" ? "anime" : "realistic",
+                    media: { avatarUrl },
+                  });
                   const workflow = aiHub.createWorkflow(
-                    "new-companion",
+                    draftPkgId,
                     "Companion Portrait",
                     {
                       prompt:
@@ -447,14 +485,14 @@ export function CreateCompanionModal({
                     return;
                   }
                   const result = await aiHub.generateImage(
-                    "new-companion",
+                    draftPkgId,
                     workflow,
                   );
                   if ("error" in result) {
                     setGenError(result.error);
                     return;
                   }
-                  const image = await aiHub.waitForImage(result.jobId, 60000);
+                  const image = await aiHub.waitForImage(result.jobId, draftPkgId, 60000);
                   if (image) {
                     setGeneratedImages([...generatedImages, image.url]);
                     setAvatarUrl(image.url);
