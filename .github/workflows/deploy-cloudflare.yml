@@ -1,0 +1,35 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  WORKING_DIR: ./privseai-trystero
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Pages
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test, build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: ${{ env.WORKING_DIR }}/dist
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: privseai-trystero
+          directory: ${{ env.WORKING_DIR }}/dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main

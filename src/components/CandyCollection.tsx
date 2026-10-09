@@ -63,22 +63,24 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
     e.target.value = "";
   };
 
-  const allPhotos = useMemo(
-		() =>
-			companions.flatMap((c) =>
-				c.gallery.map((g) => ({
-					...g,
-					companionName: c.name,
-					companionAvatar: c.avatarUrl,
-					companionCategory: c.category,
-					companionStage: c.stage,
-					companionId: c.id,
-				})),
-			),
-		[companions],
-	);
+const allPhotos = useMemo(
+    () =>
+      companions.flatMap((c) =>
+        c.gallery.map((g) => ({
+          ...g,
+          companionName: c.name,
+          companionAvatar: c.avatarUrl,
+          companionCategory: c.category,
+          companionStage: c.stage,
+          companionId: c.id,
+        })),
+      ),
+    [companions],
+  );
 
+  // Show all photos (not just unlocked) in the Images tab
   const unlockedPhotos = useMemo(() => allPhotos.filter((p) => p.isUnlocked), [allPhotos]);
+  const lockedPhotos = useMemo(() => allPhotos.filter((p) => !p.isUnlocked), [allPhotos]);
 
   // Get generated images from AIHub packages
   const generatedImages = useMemo(() => {
@@ -126,6 +128,18 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
       count: generatedVideos.length,
     },
     { id: "styles", label: "Styles", icon: "🎨", count: 3 },
+  ];
+
+  // Featured female images for the Images tab
+  const featuredImages = [
+    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
   ];
 
 	return (
@@ -216,82 +230,136 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 				</div>
 			)}
 
-			{activeTab === "images" && (
-				<div className="flex flex-col gap-4">
-					{uploadError && (
-						<div className="p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-rose-200 text-sm">
-							{uploadError}
-						</div>
-					)}
-					<div className="flex gap-2">
-						<label className="px-4 py-2 rounded-xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-semibold text-sm cursor-pointer flex items-center gap-2 transition-transform">
-							📁 Upload
-							<input
-								type="file"
-								accept="image/*"
-								multiple
-								onChange={handleImageUpload}
-								className="hidden"
-							/>
-						</label>
-					</div>
-					<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
-						{unlockedPhotos.map((photo) => (
-							<div
-								key={`photo-${photo.companionId}-${photo.id}`}
-								onClick={() => {
-									setSelectedImage(photo.url);
-									setSelectedImageTitle(photo.title);
-								}}
-								className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
-							>
-								<img
-									src={photo.url}
-									alt={photo.title}
-									className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
-								/>
-								<div className="p-2">
-									<div className="text-xs font-bold text-white truncate">
-										{photo.title}
-									</div>
-									<div className="text-[10px] text-pink-300">
-										{photo.companionName}
-									</div>
-								</div>
-							</div>
-						))}
-						{generatedImages.map((img) => (
-							<div
-								key={`gen-${img.id}`}
-								onClick={() => {
-									setSelectedImage(img.url);
-									setSelectedImageTitle(img.title);
-								}}
-								className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
-							>
-								<img
-									src={img.url}
-									alt={img.title}
-									className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
-								/>
-								{img.isNSFW && (
-									<div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-										🔞 NSFW
-									</div>
-								)}
-								<div className="p-2">
-									<div className="text-xs font-bold text-white truncate">
-										{img.title}
-									</div>
-									<div className="text-[10px] text-pink-300">
-										{img.companionName}
-									</div>
-								</div>
-							</div>
-						))}
-					</div>
-				</div>
-			)}
+{activeTab === "images" && (
+        <div className="flex flex-col gap-4">
+          {uploadError && (
+            <div className="p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-rose-200 text-sm">
+              {uploadError}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <label className="px-4 py-2 rounded-xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-semibold text-sm cursor-pointer flex items-center gap-2 transition-transform">
+              📁 Upload
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
+          <div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
+            {/* Featured female images */}
+            {featuredImages.map((url, i) => (
+              <div
+                key={`featured-${i}`}
+                onClick={() => {
+                  setSelectedImage(url);
+                  setSelectedImageTitle(`Featured ${i + 1}`);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
+              >
+                <img
+                  src={url}
+                  alt={`Featured ${i + 1}`}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    Featured {i + 1}
+                  </div>
+                  <div className="text-[10px] text-pink-300">
+                    Gallery
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Unlocked photos */}
+            {unlockedPhotos.map((photo) => (
+              <div
+                key={`photo-${photo.companionId}-${photo.id}`}
+                onClick={() => {
+                  setSelectedImage(photo.url);
+                  setSelectedImageTitle(photo.title);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
+              >
+                <img
+                  src={photo.url}
+                  alt={photo.title}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    {photo.title}
+                  </div>
+                  <div className="text-[10px] text-pink-300">
+                    {photo.companionName}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Locked photos (stage-gated) */}
+            {lockedPhotos.map((photo) => (
+              <div
+                key={`locked-${photo.companionId}-${photo.id}`}
+                className="mb-4 break-inside-[200px] rounded-2xl overflow-hidden border border-white/10 bg-black/40 group relative"
+              >
+                <img
+                  src={photo.url}
+                  alt={photo.title}
+                  className="w-full rounded-2xl grayscale opacity-50 blur-sm"
+                />
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-2xl mb-1">🔒</span>
+                  <span className="text-[10px] text-pink-300 font-bold">
+                    Stage {(photo.requiredStage ?? 0) + 1} needed
+                  </span>
+                </div>
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    {photo.title}
+                  </div>
+                  <div className="text-[10px] text-pink-300">
+                    {photo.companionName}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {/* Generated images */}
+            {generatedImages.map((img) => (
+              <div
+                key={`gen-${img.id}`}
+                onClick={() => {
+                  setSelectedImage(img.url);
+                  setSelectedImageTitle(img.title);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
+              >
+                <img
+                  src={img.url}
+                  alt={img.title}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                {img.isNSFW && (
+                  <div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+                    🔞 NSFW
+                  </div>
+                )}
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">
+                    {img.title}
+                  </div>
+                  <div className="text-[10px] text-pink-300">
+                    {img.companionName}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
 			{activeTab === "videos" && (
 				<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">

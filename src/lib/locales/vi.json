@@ -1,0 +1,92 @@
+{
+  "common": {
+    "appName": "PrivseAI",
+    "signIn": "Đăng nhập",
+    "signOut": "Đăng xuất",
+    "loading": "Đang tải...",
+    "keepBrowsing": "Tiếp tục khám phá",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "close": "Đóng",
+    "back": "Quay lại",
+    "language": "Ngôn ngữ"
+  },
+  "guest": {
+    "badge": "Chế độ khách",
+    "sidebarHint": "Bạn có thể khám phá và trò chuyện. Đăng nhập để tạo bạn đồng hành và đồng bộ dữ liệu.",
+    "signInTo": "Đăng nhập để {action}",
+    "browseHint": "Mọi người đều có thể khám phá. Tạo tài khoản để {action}, đồng bộ bạn đồng hành giữa các thiết bị và mở khóa toàn bộ thư viện."
+  },
+  "sidebar": {
+    "characters": "Nhân vật",
+    "chat": "Trò chuyện",
+    "hub": "Trung tâm AI",
+    "world": "Thế giới",
+    "events": "Sự kiện",
+    "impact": "Tác động",
+    "settings": "Cài đặt",
+    "pricing": "Giá",
+    "apiKeys": "Khóa API"
+  },
+  "collection": {
+    "title": "Bộ sưu tập",
+    "subtitle": "Khám phá toàn bộ thư viện bạn đồng hành AI.",
+    "search": "Tìm nhân vật...",
+    "filters": "Bộ lọc",
+    "empty": "Không có bạn đồng hành nào khớp bộ lọc."
+  },
+  "chat": {
+    "title": "Trò chuyện",
+    "sendPlaceholder": "Nhập tin nhắn...",
+    "send": "Gửi",
+    "regenerate": "Tạo lại",
+    "copy": "Sao chép",
+    "emptyState": "Chọn một bạn đồng hành để bắt đầu trò chuyện."
+  },
+  "hub": {
+    "title": "Trung tâm AI",
+    "subtitle": "Khám phá và remix bạn đồng hành cộng đồng.",
+    "generateImage": "Tạo ảnh thật",
+    "generating": "Đang tạo…",
+    "remix": "Remix",
+    "clone": "Nhân bản",
+    "share": "Chia sẻ",
+    "chatWith": "Trò chuyện",
+    "select": "Chọn"
+  },
+  "images": {
+    "featured": "Nổi bật",
+    "upload": "Tải lên",
+    "unlocked": "Đã mở",
+    "locked": "Đã khóa"
+  },
+  "errors": {
+    "comfyuiOffline": "ComfyUI không chạy. Cài đặt ComfyUI và khởi động lại.",
+    "workflowFailed": "Không thể tạo workflow",
+    "timedOut": "Tạo ảnh quá thời gian",
+    "generationFailed": "Tạo ảnh thất bại",
+    "packageNotFound": "Không tìm thấy gói",
+    "loadPackagesFailed": "Tải gói thất bại"
+  },
+  "create": {
+    "title": "Tạo bạn đồng hành",
+    "name": "Tên",
+    "personality": "Tính cách",
+    "bio": "Tiểu sử",
+    "occupation": "Nghề nghiệp",
+    "relationship": "Mối quan hệ",
+    "generatePortrait": "Tạo chân dung AI",
+    "saving": "Đang lưu...",
+    "categoryAnime": "Phong cách anime",
+    "categoryRealistic": "Phong cách hiện thực"
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập PrivseAI",
+    "emailPlaceholder": "Địa chỉ email",
+    "passwordPlaceholder": "Mật khẩu",
+    "createAccount": "Tạo tài khoản",
+    "forgotPassword": "Quên mật khẩu?",
+    "orContinueWith": "Hoặc tiếp tục với",
+    "backToBrowse": "← Quay lại khám phá"
+  }
+}

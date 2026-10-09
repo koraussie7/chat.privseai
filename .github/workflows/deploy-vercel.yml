@@ -1,0 +1,34 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  WORKING_DIR: ./privseai-trystero
+
+jobs:
+  deploy:
+    name: Deploy to Vercel
+    runs-on: ubuntu-latest
+    needs: [typecheck, lint, test, build]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: ${{ env.WORKING_DIR }}/dist
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ${{ env.WORKING_DIR }}
+          vercel-args: "--prod"

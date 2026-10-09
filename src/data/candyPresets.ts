@@ -53,7 +53,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/asuka-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
     "bio": "메이드 카페에서 일하면서 성우 꿈을 키우는 의욕满满 아가씨.",
     "relationship": "Devoted Maid",
     "occupation": "Maid Café Worker & Aspiring Voice Actress",
@@ -78,49 +78,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "asuka-01-featured",
-        "url": "/images/pending/asuka-01.svg",
+        "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "asuka-01-1",
-        "url": "/images/pending/asuka-02.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "asuka-01-2",
-        "url": "/images/pending/asuka-03.svg",
+        "url": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "asuka-01-3",
-        "url": "/images/pending/asuka-04.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "asuka-01-4",
-        "url": "/images/pending/asuka-05.svg",
+        "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "asuka-01-5",
-        "url": "/images/pending/asuka-06.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "asuka-01-6",
-        "url": "/images/pending/asuka-07.svg",
+        "url": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
@@ -146,7 +146,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/leo-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
     "bio": "달빛 아래 재즈 피아노를 연주하는 바텐더. 한 잔의 칵테일처럼 깊이 있는 대화.",
     "relationship": "Friend",
     "occupation": "Mixologist & Jazz Pianist",
@@ -171,49 +171,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "leo-01-featured",
-        "url": "/images/pending/leo-01.svg",
+        "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
         "title": "Leo — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "leo-01-1",
-        "url": "/images/pending/leo-02.svg",
+        "url": "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "leo-01-2",
-        "url": "/images/pending/leo-03.svg",
+        "url": "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "leo-01-3",
-        "url": "/images/pending/leo-04.svg",
+        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "leo-01-4",
-        "url": "/images/pending/leo-05.svg",
+        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "leo-01-5",
-        "url": "/images/pending/leo-06.svg",
+        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "leo-01-6",
-        "url": "/images/pending/leo-07.svg",
+        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
@@ -239,7 +239,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/luna-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
     "bio": "밤하늘의 별빛을 캔버스에 담는 화가이자 당신만의 다정한 안식처.",
     "relationship": "Close Friend",
     "occupation": "Digital Illustrator & Model",
@@ -263,49 +263,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "luna-01-featured",
-        "url": "/images/pending/luna-01.svg",
+        "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
         "title": "Luna — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "luna-01-1",
-        "url": "/images/pending/luna-02.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "luna-01-2",
-        "url": "/images/pending/luna-03.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "luna-01-3",
-        "url": "/images/pending/luna-04.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "luna-01-4",
-        "url": "/images/pending/luna-05.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "luna-01-5",
-        "url": "/images/pending/luna-06.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "luna-01-6",
-        "url": "/images/pending/luna-07.svg",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
@@ -331,7 +331,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/mia-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
     "bio": "몸과 마음의 균형을 찾는 무용수. 늘 새로운 모험을 꿈꾸는 자유로운 영혼.",
     "relationship": "Close Friend",
     "occupation": "Contemporary Dancer & Yoga Instructor",
@@ -356,49 +356,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "mia-01-featured",
-        "url": "/images/pending/mia-01.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "mia-01-1",
-        "url": "/images/pending/mia-02.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "mia-01-2",
-        "url": "/images/pending/mia-03.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "mia-01-3",
-        "url": "/images/pending/mia-04.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "mia-01-4",
-        "url": "/images/pending/mia-05.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "mia-01-5",
-        "url": "/images/pending/mia-06.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "mia-01-6",
-        "url": "/images/pending/mia-07.svg",
+        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
@@ -424,7 +424,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/sophia-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
     "bio": "뇌과학을 연구하는 박사과정. 복잡한 것을 쉽게 설명해주는 재능이 있어요.",
     "relationship": "Mentor",
     "occupation": "PhD Researcher in Neuroscience",
@@ -449,49 +449,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "sophia-01-featured",
-        "url": "/images/pending/sophia-01.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "sophia-01-1",
-        "url": "/images/pending/sophia-02.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "sophia-01-2",
-        "url": "/images/pending/sophia-03.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "sophia-01-3",
-        "url": "/images/pending/sophia-04.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "sophia-01-4",
-        "url": "/images/pending/sophia-05.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "sophia-01-5",
-        "url": "/images/pending/sophia-06.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "sophia-01-6",
-        "url": "/images/pending/sophia-07.svg",
+        "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
@@ -517,7 +517,7 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "isOnline": false,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/yuki-01.svg",
+    "avatarUrl": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
     "bio": "게임과 코딩을 사랑하는 게이머. 새벽 3시까지 함께 게임할 친구를 찾아요.",
     "relationship": "Best Friend",
     "occupation": "Twitch Streamer & Indie Dev",
@@ -542,49 +542,49 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
     "gallery": [
       {
         "id": "yuki-01-featured",
-        "url": "/images/pending/yuki-01.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — featured portrait",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "yuki-01-1",
-        "url": "/images/pending/yuki-02.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 1",
         "isUnlocked": true,
         "requiredStage": 0
       },
       {
         "id": "yuki-01-2",
-        "url": "/images/pending/yuki-03.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 2",
         "isUnlocked": true,
         "requiredStage": 1
       },
       {
         "id": "yuki-01-3",
-        "url": "/images/pending/yuki-04.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 3",
         "isUnlocked": true,
         "requiredStage": 2
       },
       {
         "id": "yuki-01-4",
-        "url": "/images/pending/yuki-05.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 4",
         "isUnlocked": false,
         "requiredStage": 3
       },
       {
         "id": "yuki-01-5",
-        "url": "/images/pending/yuki-06.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 5",
         "isUnlocked": false,
         "requiredStage": 4
       },
       {
         "id": "yuki-01-6",
-        "url": "/images/pending/yuki-07.svg",
+        "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 6",
         "isUnlocked": false,
         "requiredStage": 4
