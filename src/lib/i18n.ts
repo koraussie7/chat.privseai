@@ -15,11 +15,12 @@
  */
 import { useCallback, useEffect, useState } from "react";
 
-export type Locale = "en" | "ko" | "ja" | "zh";
-export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = ["en", "ko", "ja", "zh"];
+export type Locale = "en" | "ko" | "ja" | "zh" | "my" | "vi";
+export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = ["en", "ko", "ja", "zh", "my", "vi"];
 export const DEFAULT_LOCALE: Locale = "en";
 
 const STORAGE_KEY = "privsei.locale";
+const LOCALE_EVENT = "privsei:locale-change";
 
 export interface TranslationTree {
 	readonly [key: string]: string | TranslationTree;
@@ -148,6 +149,15 @@ export function useI18n(): I18nApi {
 		};
 	}, [locale]);
 
+	useEffect(() => {
+		const onLocaleChange = (event: Event) => {
+			const next = (event as CustomEvent<Locale>).detail;
+			if (SUPPORTED_LOCALES.includes(next)) setLocaleState(next);
+		};
+		window.addEventListener(LOCALE_EVENT, onLocaleChange);
+		return () => window.removeEventListener(LOCALE_EVENT, onLocaleChange);
+	}, []);
+
 	const setLocale = useCallback((next: Locale) => {
 		if (!SUPPORTED_LOCALES.includes(next)) return;
 		try {
@@ -156,6 +166,7 @@ export function useI18n(): I18nApi {
 			// ignore
 		}
 		setLocaleState(next);
+		window.dispatchEvent(new CustomEvent(LOCALE_EVENT, { detail: next }));
 	}, []);
 
 	const t = useCallback(

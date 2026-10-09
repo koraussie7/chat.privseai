@@ -26,6 +26,7 @@ export interface CandyCompanion {
     title: string;
     isUnlocked: boolean;
     requiredStage?: number;
+    isNSFW?: boolean;
   }[];
   scenarios: {
     id: string;
@@ -109,21 +110,24 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "asuka-01-5",
         "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "asuka-01-6",
         "url": "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
         "title": "Asuka — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [
@@ -197,26 +201,29 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "isUnlocked": true,
         "requiredStage": 2
       },
-      {
+{
         "id": "leo-01-4",
         "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "leo-01-5",
-        "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
+        "url": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "leo-01-6",
         "url": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
         "title": "Leo — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [
@@ -289,26 +296,29 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "isUnlocked": true,
         "requiredStage": 2
       },
-      {
+{
         "id": "luna-01-4",
         "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "luna-01-5",
-        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
+        "url": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "luna-01-6",
         "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Luna — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [
@@ -382,26 +392,29 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "isUnlocked": true,
         "requiredStage": 2
       },
-      {
+{
         "id": "mia-01-4",
         "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "mia-01-5",
-        "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
+        "url": "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "mia-01-6",
         "url": "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
         "title": "Mia — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [
@@ -480,21 +493,24 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "sophia-01-5",
         "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "sophia-01-6",
         "url": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
         "title": "Sophia — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [
@@ -573,21 +589,24 @@ export const FEATURED_PRESETS: CandyCompanion[] = [
         "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 4",
         "isUnlocked": false,
-        "requiredStage": 3
+        "requiredStage": 3,
+        "isNSFW": true
       },
       {
         "id": "yuki-01-5",
         "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 5",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       },
       {
         "id": "yuki-01-6",
         "url": "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
         "title": "Yuki — moment 6",
         "isUnlocked": false,
-        "requiredStage": 4
+        "requiredStage": 4,
+        "isNSFW": true
       }
     ],
     "scenarios": [

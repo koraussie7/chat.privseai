@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { useEffect } from "react";
 
 interface Props {
@@ -11,47 +12,48 @@ const API_URL =
 
 export function PricingPage({ onBack }: Props) {
 	const { user, quota } = useAuth();
+	const { t } = useI18n();
 	useEffect(() => {}, []);
 
 	const plans = [
 		{
 			id: "free",
-			name: "Free",
+			name: t("pricing.free"),
 			price: "$0",
-			description: "Basic P2P chat with daily quota",
+			description: t("pricing.freeDescription"),
 			features: [
-				"20 daily messages",
-				"Basic AI companions",
-				"P2P network access",
-				"Community support",
+				t("pricing.messages20"),
+				t("pricing.basicCompanions"),
+				t("pricing.p2pAccess"),
+				t("pricing.communitySupport"),
 			],
 			current: !user,
 		},
 		{
 			id: "pro",
-			name: "Pro",
+			name: t("pricing.pro"),
 			price: "$9.99",
-			description: "Enhanced chat with higher limits",
+			description: t("pricing.proDescription"),
 			features: [
-				"Unlimited messages",
-				"Priority P2P peers",
-				"Voice messaging",
-				"Gallery generation",
-				"Early access to new models",
+				t("pricing.unlimitedMessages"),
+				t("pricing.priorityPeers"),
+				t("pricing.voiceMessaging"),
+				t("pricing.galleryGeneration"),
+				t("pricing.earlyModels"),
 			],
 			current: false,
 		},
 		{
 			id: "enterprise",
-			name: "Enterprise",
+			name: t("pricing.enterprise"),
 			price: "$29.99",
-			description: "Full access for power users",
+			description: t("pricing.enterpriseDescription"),
 			features: [
-				"Everything in Pro",
-				"NSFW content unlocked",
-				"Custom AI companion training",
-				"P2P revenue sharing",
-				"Dedicated support",
+				t("pricing.everythingPro"),
+				t("pricing.nsfwUnlocked"),
+				t("pricing.customTraining"),
+				t("pricing.revenueSharing"),
+				t("pricing.dedicatedSupport"),
 			],
 			current: false,
 		},
@@ -70,13 +72,13 @@ export function PricingPage({ onBack }: Props) {
 						onClick={onBack}
 						className="px-3 py-1.5 rounded-xl bg-white/5 text-gray-300 hover:text-white text-sm transition"
 					>
-						← Back
+						{t("common.back")}
 					</button>
 				)}
 				<div>
-					<h1 className="text-2xl sm:text-3xl font-extrabold text-white">💎 Pricing</h1>
+					<h1 className="text-2xl sm:text-3xl font-extrabold text-white">💎 {t("pricing.title")}</h1>
 					<p className="text-sm text-gray-400 mt-1">
-						Choose your plan for the ultimate P2P AI companion experience.
+						{t("pricing.subtitle")}
 					</p>
 				</div>
 			</div>
@@ -85,11 +87,11 @@ export function PricingPage({ onBack }: Props) {
 				<div className="mb-8 p-4 bg-[#12141e] border border-white/10 rounded-2xl">
 					<div className="flex items-center justify-between">
 						<div>
-							<span className="text-sm text-gray-400">Current Plan</span>
+							<span className="text-sm text-gray-400">{t("pricing.currentPlan")}</span>
 							<span className="ml-2 font-bold text-white">Free</span>
 						</div>
 						<div className="text-right">
-							<span className="text-sm text-gray-400">Daily Quota</span>
+							<span className="text-sm text-gray-400">{t("pricing.dailyQuota")}</span>
 							<span className="ml-2 text-white">
 								{quota.used} / {quota.limit}
 							</span>
@@ -127,7 +129,7 @@ export function PricingPage({ onBack }: Props) {
 
 						{plan.current ? (
 							<div className="text-center py-2 text-xs text-emerald-400 font-medium">
-								✓ Current Plan
+								✓ {t("pricing.currentPlan")}
 							</div>
 						) : (
 							<button
@@ -135,7 +137,7 @@ export function PricingPage({ onBack }: Props) {
 								onClick={() => handleCheckout(plan.id)}
 								className="w-full py-2.5 rounded-2xl bg-candy-gradient text-white font-bold text-sm hover:bg-candy-gradient-hover transition transform hover:-translate-y-0.5"
 							>
-								Get {plan.name}
+								{t("pricing.getPlan", { plan: plan.name })}
 							</button>
 						)}
 					</div>
@@ -143,9 +145,9 @@ export function PricingPage({ onBack }: Props) {
 			</div>
 
 			<div className="mt-12 text-center text-xs text-gray-500">
-				All plans include P2P decentralized chat. No credit card required for Free.
+				{t("pricing.footer")}
 				<br />
-				Privacy-first: your data never leaves your device unless you share it.
+				{t("pricing.privacy")}
 			</div>
 		</div>
 	);

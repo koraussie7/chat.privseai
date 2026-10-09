@@ -17,8 +17,8 @@ const en = {
 };
 
 describe("i18n helpers", () => {
-	it("SUPPORTED_LOCALES includes the four planned languages", () => {
-		expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "ja", "zh"]);
+	it("SUPPORTED_LOCALES includes all six supported languages", () => {
+		expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "ja", "zh", "my", "vi"]);
 		expect(DEFAULT_LOCALE).toBe("en");
 	});
 
@@ -47,5 +47,21 @@ describe("i18n helpers", () => {
 
 	it("plural falls back to the bare string when no one/other subtree", () => {
 		expect(plural(en, "common.hello", 1)).toBe("Hello");
+	});
+});
+
+
+describe("locale dictionaries", () => {
+	it("Myanmar and Vietnamese contain core UI translations", async () => {
+		const [my, vi] = await Promise.all([
+			import("@/lib/locales/my.json"),
+			import("@/lib/locales/vi.json"),
+		]);
+		for (const locale of [my.default, vi.default]) {
+			expect(locale.common.signIn).toBeTruthy();
+			expect(locale.guest.badge).toBeTruthy();
+			expect(locale.loginPage.signinTitle).toBeTruthy();
+			expect(locale.pricing.title).toBeTruthy();
+		}
 	});
 });

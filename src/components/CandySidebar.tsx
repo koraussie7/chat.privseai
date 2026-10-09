@@ -19,11 +19,13 @@ interface Props {
 export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout }: Props) {
 	const [collapsed, setCollapsed] = useState(false);
 	const { t, locale, setLocale } = useI18n();
-	const localeOptions: ReadonlyArray<{ code: "en" | "ko" | "ja" | "zh"; label: string; flag: string }> = [
+	const localeOptions: ReadonlyArray<{ code: "en" | "ko" | "ja" | "zh" | "my" | "vi"; label: string; flag: string }> = [
 		{ code: "en", label: "English", flag: "🇺🇸" },
 		{ code: "ko", label: "한국어", flag: "🇰🇷" },
 		{ code: "ja", label: "日本語", flag: "🇯🇵" },
 		{ code: "zh", label: "中文", flag: "🇨🇳" },
+		{ code: "my", label: "မြန်မာ", flag: "🇲" },
+		{ code: "vi", label: "Tiếng Việt", flag: "🇻🇳" },
 	];
 
 

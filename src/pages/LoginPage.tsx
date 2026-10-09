@@ -1,11 +1,13 @@
 import { type MeResponse, loginUrl } from "@/lib/auth";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 interface Props {
 	onAuthSuccess?: (data: MeResponse) => void;
 }
 
 export function LoginPage({ onAuthSuccess }: Props) {
+	const { t } = useI18n();
 	const [email, setEmail] = useState("");
 	const [password, setPassword] = useState("");
 	const [isLoading, setIsLoading] = useState(false);
@@ -32,14 +34,14 @@ export function LoginPage({ onAuthSuccess }: Props) {
 
 			if (!res.ok) {
 				const err = await res.text();
-				setError(err || "Authentication failed");
+				setError(err || t("errors.authenticationFailed"));
 				return;
 			}
 
 			const data = (await res.json()) as MeResponse;
 			onAuthSuccess?.(data);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Network error");
+			setError(err instanceof Error ? err.message : t("errors.networkError"));
 		} finally {
 			setIsLoading(false);
 		}
@@ -60,7 +62,7 @@ export function LoginPage({ onAuthSuccess }: Props) {
 						PRIVSEAI CANDY
 					</h1>
 					<p className="text-sm text-gray-400 mt-2">
-						{mode === "signin" ? "Sign in to your account" : "Create your account"}
+						{mode === "signin" ? t("loginPage.signinTitle") : t("loginPage.signupTitle")}
 					</p>
 				</div>
 
@@ -81,7 +83,7 @@ export function LoginPage({ onAuthSuccess }: Props) {
 								onChange={(e) => setEmail(e.target.value)}
 								required
 								className="w-full px-4 py-3 bg-[#0e0f17] border border-white/10 rounded-2xl text-gray-100 placeholder:text-gray-500 focus:outline-none focus:border-pink-500/50 transition-colors"
-								placeholder="you@example.com"
+								placeholder={t("loginPage.emailExample")}
 							/>
 						</div>
 
@@ -105,11 +107,11 @@ export function LoginPage({ onAuthSuccess }: Props) {
 						>
 							{isLoading
 								? mode === "signin"
-									? "Signing in..."
-									: "Creating account..."
+									? t("loginPage.signingIn")
+									: t("loginPage.creatingAccount")
 								: mode === "signin"
-									? "Sign In"
-									: "Create Account"}
+									? t("loginPage.signIn")
+									: t("loginPage.createAccount")}
 						</button>
 					</form>
 
@@ -118,7 +120,7 @@ export function LoginPage({ onAuthSuccess }: Props) {
 							<div className="w-full border-t border-white/10" />
 						</div>
 						<div className="relative flex justify-center text-xs text-gray-500">
-							<span className="px-3 bg-[#12141e]">OR</span>
+							<span className="px-3 bg-[#12141e]">{t("loginPage.or")}</span>
 						</div>
 					</div>
 
@@ -135,7 +137,7 @@ export function LoginPage({ onAuthSuccess }: Props) {
 									d="M22.56 12.24c0-1.07-.09-2.09-.27-3.05 0-.04-.01-.07-.01-.11 0-1.87.66-3.51 1.7-4.82A11.4 11.4 0 0 0 12 2.05c-2.64 0-5.04.85-6.93 2.33A9.53 9.53 0 0 0 1.9 7.6c.01.07-.01.13-.01.2 0 2.28.82 4.29 2.17 5.84-.04.22-.08.44-.08.66 0 1.87.66 3.51 1.7 4.82a10.95 10.95 0 0 0 4.28 3.06c.01-.09.03-1.77.03-3.15l-.01-.67c0-1.58-.03-2.89-.03-3.24v-.01c1.19-.17 2.3-.26 3.42-.26 1.12 0 2.23.09 3.31.27.02.23.04.51.04.8 0 1.88-.01 3.71-.01 4.29 0 .15.01.3.01.45a10.92 10.92 0 0 0 3.16-3.1c1.04-1.65 1.64-3.6 1.64-5.66 0-.33-.01-.65-.01-.98.01 0-.01-.01 0-.01z"
 								/>
 							</svg>
-							Continue with Google
+							{t("loginPage.continueGoogle")}
 						</button>
 						<button
 							type="button"
@@ -146,7 +148,7 @@ export function LoginPage({ onAuthSuccess }: Props) {
 							<title>GitHub</title>
 								<path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.44 9.81 8.21 11.4.6.11.82-.26.82-.57 0-.29-.01-1.23-.02-2.24-3.34.73-4.04-1.61-4.04-1.61C4.42 18.07 3.63 17.7 3.63 17.7c-1.11-.75.08-.74.08-.74 1.22.09 1.86 1.25 1.86 1.25 1.09 1.87 2.87 1.34 3.57 1.03.11-.8.43-1.34.78-1.64-2.66-.31-5.47-1.33-5.47-5.94 0-1.31.47-2.39 1.24-3.24-.12-.31-.54-1.56.12-3.26 0 0 1.01-.32 3.31 1.23a11.51 11.51 0 013.01-.4c1.02.01 2.05.14 3.01.41 2.3-1.55 3.31-1.23 3.31-1.23.66 1.7.25 2.95.12 3.26.77.86 1.23 1.94 1.23 3.24 0 4.62-3.34 5.63-5.98 6.24.45.39.83 1.17.83 2.36 0 1.71-.02 3.09-.02 3.51 0 .31.21.68.82.56C20.56 22.77 24 18.21 24 12C24 5.37 18.63 0 12 0z" />
 							</svg>
-							Continue with GitHub
+							{t("loginPage.continueGitHub")}
 						</button>
 					</div>
 
@@ -157,18 +159,17 @@ export function LoginPage({ onAuthSuccess }: Props) {
 							className="text-sm text-pink-400 hover:text-pink-300 transition"
 						>
 							{mode === "signin"
-								? "New to PrivseAI? Create account →"
-								: "Already have an account? Sign in →"}
+								? t("loginPage.newUser")
+								: t("loginPage.existingUser")}
 						</button>
 					</div>
 				</div>
 
 				<div className="text-center mt-6 text-xs text-gray-500">
-					By continuing, you agree to our Terms of Service and Privacy Policy.
+					{t("loginPage.terms")}
 					<br />
 					<label className="flex items-center justify-center gap-2 mt-2 cursor-pointer">
-						<input type="checkbox" className="rounded bg-[#0e0f17] border-white/10" />I confirm I am
-						18+ years old
+						<input type="checkbox" className="rounded bg-[#0e0f17] border-white/10" />{t("loginPage.ageConfirm")}
 					</label>
 				</div>
 			</div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAIHub } from "@/hooks/useAIHub";
 import { ComfyUIClient } from "@/lib/comfyui-client";
 import { CharacterCardParser } from "@/lib/character-card";
+import { useI18n } from "@/lib/i18n";
 import type { CandyCompanion } from "@/data/candyPresets";
 
 interface Props {
@@ -19,6 +20,7 @@ export function CreateCompanionModal({
   onCreate,
   onUpdate,
 }: Props) {
+  const { t } = useI18n();
   const isEditing = editingCompanion !== null;
   const { aiHub } = useAIHub();
   const [name, setName] = useState("");
@@ -164,12 +166,12 @@ export function CreateCompanionModal({
           </div>
           <div>
             <h2 className="text-xl font-bold text-white">
-              {isEditing ? "Edit Your Companion" : "Create Your AI Girlfriend"}
+              {isEditing ? t("create.editTitle") : t("create.createTitle")}
             </h2>
             <p className="text-xs text-gray-400">
               {isEditing
-                ? "캐릭터 정보를 수정하고 저장하세요."
-                : "Candy.ai 스타일로 나만의 맞춤형 캐릭터를 만들어보세요."}
+                ? t("create.editHint")
+                : t("create.createHint")}
             </p>
           </div>
         </div>
@@ -178,7 +180,7 @@ export function CreateCompanionModal({
           {/* Style Selection */}
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
-              Style Type
+              {t("create.styleType")}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -190,7 +192,7 @@ export function CreateCompanionModal({
                     : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white"
                 }`}
               >
-                <span>💃</span> Realistic (실사)
+                <span>💃</span> {t("create.realistic")}
               </button>
               <button
                 type="button"
@@ -201,7 +203,7 @@ export function CreateCompanionModal({
                     : "bg-white/[0.03] border-white/10 text-gray-400 hover:text-white"
                 }`}
               >
-                <span>🌸</span> Anime (애니)
+                <span>🌸</span> {t("create.anime")}
               </button>
             </div>
           </div>
@@ -209,7 +211,7 @@ export function CreateCompanionModal({
           {/* Gender Selection */}
           <div>
             <label className="block text-xs font-semibold text-gray-300 mb-2 uppercase tracking-wider">
-              Gender
+              {t("create.gender")}
             </label>
             <div className="grid grid-cols-2 gap-3">
               <button

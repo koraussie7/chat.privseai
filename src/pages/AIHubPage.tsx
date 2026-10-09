@@ -3,6 +3,7 @@ import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { useAIHub } from "@/hooks/useAIHub";
 import { AIHub } from "@/lib/ai-hub";
+import { useI18n } from "@/lib/i18n";
 import { CharacterCardParser } from "@/lib/character-card";
 import type { AIPackage } from "@/types/ai-package";
 import { useEffect, useMemo, useState } from "react";
@@ -11,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 const STORAGE_KEY = "privseai_ai_packages";
 
 export function AIHubPage() {
+  const { t } = useI18n();
   const { aiHub, tick } = useAIHub();
   const [packages, setPackages] = useState<AIPackage[]>([]);
   const [savedPackages, setSavedPackages] = useState<AIPackage[]>([]); // Saved clones/remixes.
@@ -689,15 +691,15 @@ export function AIHubPage() {
           <div className="mt-6 flex gap-3">
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <span>🌐</span>
-              {stats.totalPeers} peers online
+              {stats.totalPeers} {t("hub.peersOnline")}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <span>📦</span>
-              {stats.totalPackages} packages
+              {stats.totalPackages} {t("hub.packages")}
             </div>
             <div className="flex items-center gap-2 text-xs text-gray-400">
               <span>💾</span>
-              {stats.cachedModels} cached models
+              {stats.cachedModels} {t("hub.cachedModels")}
             </div>
           </div>
         </div>
@@ -717,7 +719,7 @@ export function AIHubPage() {
               }`}
             >
               {cat === "all"
-                ? "🧠 All AIs"
+                ? "🧠 " + t("hub.allAis")
                 : cat.charAt(0).toUpperCase() + cat.slice(1)}
             </button>
           ))}
@@ -728,7 +730,7 @@ export function AIHubPage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search AIs by name, creator, tools..."
+            placeholder={t("hub.searchPlaceholder")}
             className="w-full bg-[#13141f] border border-white/10 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-gray-200 placeholder:text-gray-500 focus:outline-none focus:border-cyan-500/50"
           />
           {searchQuery && (
