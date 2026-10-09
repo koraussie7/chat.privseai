@@ -24,10 +24,44 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
   );
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const selectedCharacter = useMemo(
     () => companions.find((c) => c.id === selectedCharacterId) ?? null,
     [companions, selectedCharacterId],
   );
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const pkgs = aiHub.getAllPackages();
+    if (pkgs.length === 0) {
+      setUploadError("No packages available. Create one in AI Hub first.");
+      return;
+    }
+
+    const pkg = pkgs[0];
+
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith("image/")) continue;
+
+      const url = URL.createObjectURL(file);
+      const image = {
+        id: `upload-${Date.now()}-${file.name}`,
+        url,
+        title: file.name.replace(/\.[^.]+$/, ""),
+        description: "",
+        prompt: "",
+        model: "uploaded",
+        generatedAt: Date.now(),
+      };
+
+      aiHub.addImageAsset(pkg.id, image);
+    }
+
+    setUploadError(null);
+    e.target.value = "";
+  };
 
   const allPhotos = useMemo(
 		() =>
@@ -183,60 +217,79 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
 			)}
 
 			{activeTab === "images" && (
-				<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
-					{unlockedPhotos.map((photo) => (
-						<div
-							key={`photo-${photo.companionId}-${photo.id}`}
-							onClick={() => {
-								setSelectedImage(photo.url);
-								setSelectedImageTitle(photo.title);
-							}}
-							className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
-						>
-							<img
-								src={photo.url}
-								alt={photo.title}
-								className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+				<div className="flex flex-col gap-4">
+					{uploadError && (
+						<div className="p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-rose-200 text-sm">
+							{uploadError}
+						</div>
+					)}
+					<div className="flex gap-2">
+						<label className="px-4 py-2 rounded-xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-semibold text-sm cursor-pointer flex items-center gap-2 transition-transform">
+							📁 Upload
+							<input
+								type="file"
+								accept="image/*"
+								multiple
+								onChange={handleImageUpload}
+								className="hidden"
 							/>
-							<div className="p-2">
-								<div className="text-xs font-bold text-white truncate">
-									{photo.title}
-								</div>
-								<div className="text-[10px] text-pink-300">
-									{photo.companionName}
+						</label>
+					</div>
+					<div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
+						{unlockedPhotos.map((photo) => (
+							<div
+								key={`photo-${photo.companionId}-${photo.id}`}
+								onClick={() => {
+									setSelectedImage(photo.url);
+									setSelectedImageTitle(photo.title);
+								}}
+								className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
+							>
+								<img
+									src={photo.url}
+									alt={photo.title}
+									className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+								/>
+								<div className="p-2">
+									<div className="text-xs font-bold text-white truncate">
+										{photo.title}
+									</div>
+									<div className="text-[10px] text-pink-300">
+										{photo.companionName}
+									</div>
 								</div>
 							</div>
-						</div>
-					))}
-					{generatedImages.map((img) => (
-						<div
-							key={`gen-${img.id}`}
-							onClick={() => {
-								setSelectedImage(img.url);
-								setSelectedImageTitle(img.title);
-							}}
-							className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
-						>
-							<img
-								src={img.url}
-								alt={img.title}
-								className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
-							/>
-							{img.isNSFW && (
-								<div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-									🔞 NSFW
-								</div>
-							)}
-							<div className="p-2">
-								<div className="text-xs font-bold text-white truncate">
-									{img.title}
-								</div>
-								<div className="text-[10px] text-pink-300">
-									{img.companionName}
+						))}
+						{generatedImages.map((img) => (
+							<div
+								key={`gen-${img.id}`}
+								onClick={() => {
+									setSelectedImage(img.url);
+									setSelectedImageTitle(img.title);
+								}}
+								className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group relative"
+							>
+								<img
+									src={img.url}
+									alt={img.title}
+									className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+								/>
+								{img.isNSFW && (
+									<div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
+										🔞 NSFW
+									</div>
+								)}
+								<div className="p-2">
+									<div className="text-xs font-bold text-white truncate">
+										{img.title}
+									</div>
+									<div className="text-[10px] text-pink-300">
+										{img.companionName}
+									</div>
 								</div>
 							</div>
-						</div>
-					))}
+						))}
+					</div>
 				</div>
 			)}
 
