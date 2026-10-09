@@ -927,6 +927,78 @@ export class AIHub {
 	}
 
 	/**
+	 * Detect whether a URL is one of our placeholder SVGs. Used to know
+	 * when a real ComfyUI render should replace the placeholder.
+	 */
+	static isPlaceholderUrl(url: string): boolean {
+		return (
+			url.startsWith("/images/pending/") ||
+			url.includes("/images/luna-featured") ||
+			url.includes("/images/luna-banner")
+		);
+	}
+
+	/**
+	 * Generate a real ComfyUI image and use it to replace a placeholder
+	 * asset in the package. Returns the new ImageAsset, or an error
+	 * object describing why generation failed (ComfyUI offline, no
+	 * workflow, timeout, etc).
+	 */
+	async generateReplacementForPlaceholder(
+		pkgId: string,
+		placeholderUrl: string,
+		opts: {
+			prompt: string;
+			negativePrompt?: string;
+			width?: number;
+			height?: number;
+			steps?: number;
+			cfg?: number;
+			timeoutMs?: number;
+		},
+	): Promise<ImageAsset | { error: string }> {
+		const pkg = this.packages.get(pkgId);
+		if (!pkg) return { error: "Package not found" };
+		if (!this.comfyui) {
+			return { error: "ComfyUI client not configured" };
+		}
+		const status = await this.comfyui.getStatus();
+		if (!status.online) {
+			return { error: "ComfyUI is not online" };
+		}
+		const workflow = this.createWorkflow(pkgId, "Generated portrait", {
+			prompt: opts.prompt,
+			negativePrompt: opts.negativePrompt,
+			width: opts.width,
+			height: opts.height,
+			steps: opts.steps,
+			cfg: opts.cfg,
+		});
+		if (!workflow) return { error: "Could not create workflow" };
+		const result = await this.generateImage(pkgId, workflow);
+		if ("error" in result) return result;
+		const image = await this.waitForImage(
+			result.jobId,
+			pkgId,
+			opts.timeoutMs ?? 60000,
+		);
+		if (!image) return { error: "Generation timed out" };
+		// Remove the placeholder entry from this package.
+		if (pkg.media.images) {
+			pkg.media.images = pkg.media.images.filter(
+				(img) => img.url !== placeholderUrl,
+			);
+		}
+		if (pkg.media.gallery) {
+			pkg.media.gallery = pkg.media.gallery.filter(
+				(u) => u !== placeholderUrl,
+			);
+		}
+		this._publishLocal(pkg);
+		return image;
+	}
+
+	/**
 	 * Get all image assets.
 	 */
 	getAllImages(): ImageAsset[] {

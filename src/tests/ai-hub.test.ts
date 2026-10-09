@@ -256,4 +256,40 @@ describe("AIHub", () => {
   it("returns empty for unknown package ID", () => {
     expect(hub.getPackage("nonexistent-id")).toBeUndefined();
   });
+
+  // Regression: isPlaceholderUrl detects the SVG markers used by the
+  // 100 preset images under /images/pending/.
+  it("isPlaceholderUrl returns true for /images/pending/ URLs", () => {
+    expect(AIHub.isPlaceholderUrl("/images/pending/luna-01.svg")).toBe(true);
+    expect(AIHub.isPlaceholderUrl("/images/luna-featured.svg")).toBe(true);
+    expect(AIHub.isPlaceholderUrl("/images/luna-banner.svg")).toBe(true);
+    expect(AIHub.isPlaceholderUrl("https://example.com/photo.png")).toBe(false);
+    expect(AIHub.isPlaceholderUrl("blob:abc")).toBe(false);
+  });
+
+  it("generateReplacementForPlaceholder returns error when package missing", async () => {
+    const result = await hub.generateReplacementForPlaceholder(
+      "does-not-exist",
+      "/images/pending/luna-01.svg",
+      { prompt: "test" },
+    );
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.error).toMatch(/Package not found|ComfyUI/);
+    }
+  });
+
+  it("generateReplacementForPlaceholder returns error when ComfyUI offline", async () => {
+    const card = makeTestCard("Offline");
+    const pkg = hub.createPackage({ card, creator: "o" });
+    const result = await hub.generateReplacementForPlaceholder(
+      pkg.id,
+      "/images/pending/luna-01.svg",
+      { prompt: "a portrait" },
+    );
+    expect("error" in result).toBe(true);
+    if ("error" in result) {
+      expect(result.error).toMatch(/ComfyUI|client|not/);
+    }
+  });
 });
