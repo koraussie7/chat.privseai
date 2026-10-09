@@ -113,16 +113,7 @@ const allPhotos = useMemo(
     }));
   }, [aiHub, tick]);
 
-  // NSFW images (18+ only, gated by age verification)
-  const nsfwImages = [
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
-  ];
-
+  // Only images explicitly marked isNSFW in gallery metadata are shown as 18+.
   // Check if user is age-verified for NSFW content
   const [isAgeVerified, setIsAgeVerified] = useState(false);
   useEffect(() => {
@@ -144,7 +135,7 @@ const allPhotos = useMemo(
       id: "images",
       label: "Images",
       icon: "🖼",
-      count: unlockedPhotos.length + generatedImages.length + (isAgeVerified ? nsfwPhotos.length + nsfwImages.length : 0),
+      count: allPhotos.length + generatedImages.length + (isAgeVerified ? nsfwPhotos.length : 0),
     },
     {
       id: "videos",
@@ -155,17 +146,6 @@ const allPhotos = useMemo(
     { id: "styles", label: "Styles", icon: "🎨", count: 3 },
   ];
 
-  // Featured female images for the Images tab
-  const featuredImages = [
-    "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1515886657613-9bf0b5147d3e?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1519741447674-611481863552?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=500&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=500&fit=crop&q=80",
-  ];
 
 	return (
 		<div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto w-full">
@@ -275,31 +255,6 @@ const allPhotos = useMemo(
             </label>
           </div>
           <div className="columns-2 sm:columns-3 md:columns-4 gap-4 sm:gap-6">
-            {/* Featured female images */}
-            {featuredImages.map((url, i) => (
-              <div
-                key={`featured-${i}`}
-                onClick={() => {
-                  setSelectedImage(url);
-                  setSelectedImageTitle(`Featured ${i + 1}`);
-                }}
-                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-pink-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/10 group"
-              >
-                <img
-                  src={url}
-                  alt={`Featured ${i + 1}`}
-                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="p-2">
-                  <div className="text-xs font-bold text-white truncate">
-                    Featured {i + 1}
-                  </div>
-                  <div className="text-[10px] text-pink-300">
-                    Gallery
-                  </div>
-                </div>
-              </div>
-            ))}
             {/* NSFW images (18+ only, from character galleries) */}
             {isAgeVerified && nsfwPhotos.map((photo) => (
               <div
@@ -328,34 +283,11 @@ const allPhotos = useMemo(
                 </div>
               </div>
             ))}
-            {/* NSFW images (18+ only, standalone) */}
-            {isAgeVerified && nsfwImages.map((url, i) => (
-              <div
-                key={`nsfw-${i}`}
-                onClick={() => {
-                  setSelectedImage(url);
-                  setSelectedImageTitle(`NSFW ${i + 1}`);
-                }}
-                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-rose-500/30 hover:border-rose-500/60 transition-all duration-300 hover:shadow-xl hover:shadow-rose-500/20 group relative"
-              >
-                <img
-                  src={url}
-                  alt={`NSFW ${i + 1}`}
-                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute top-2 right-2 bg-rose-500/70 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                  🔞 NSFW
-                </div>
-                <div className="p-2">
-                  <div className="text-xs font-bold text-white truncate">
-                    NSFW {i + 1}
-                  </div>
-                  <div className="text-[10px] text-rose-300">
-                    18+ Only
-                  </div>
-                </div>
+            {isAgeVerified && nsfwPhotos.length === 0 && (
+              <div className="col-span-full rounded-2xl border-white/10 bg-white/[0.03] p-6 text-center text-sm text-slate-400">
+                No 18+ images have been added yet. Images appear here only when their gallery metadata explicitly marks them as NSFW.
               </div>
-            ))}
+            )}
             {/* Unlocked photos */}
             {unlockedPhotos.map((photo) => (
               <div
