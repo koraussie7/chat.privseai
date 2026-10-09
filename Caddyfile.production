@@ -1,0 +1,137 @@
+# Caddy Configuration for privseai.com
+# Place at /etc/caddy/Caddyfile
+# Run: sudo caddy run --config /etc/caddy/Caddyfile
+
+{
+    admin off
+    auto_https off
+    email admin@privseai.com
+}
+
+# ============================================
+# Main Site: privseai.com
+# ============================================
+privseai.com, www.privseai.com {
+    root * /var/www/privseai/dist
+    file_server
+
+    # SPA fallback
+    try_files {path} /index.html
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+
+    # Gzip compression
+    encode zstd gzip
+
+    # Cache static assets
+    @static {
+        path /assets/*
+    }
+    header @static Cache-Control "public, max-age=31536000, immutable"
+
+    # API proxy -> LiteLLM (port 4003)
+    handle /api/* {
+        reverse_proxy http://localhost:4003 {
+            header_up Host {http.request.host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+            lb_try_duration 5s
+            lb_try_interval 250ms
+        }
+    }
+
+    # Health endpoint (no auth)
+    handle /health {
+        respond 200 "OK"
+    }
+
+    # P2P signaling (Trystero/Nostr)
+    handle /p2p* {
+        reverse_proxy http://localhost:8080 {
+            header_up Host {http.request.host}
+            header_up Upgrade {http.request.header.Upgrade}
+            header_up Connection "upgrade"
+        }
+    }
+}
+
+# ============================================
+# API Subdomain: api.privseai.com
+# ============================================
+api.privseai.com {
+    reverse_proxy http://localhost:4003 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        lb_try_duration 5s
+        lb_try_interval 250ms
+    }
+
+    # Health endpoint
+    handle /health {
+        respond 200 "OK"
+    }
+
+    # Rate limiting
+    ratelimit {
+        zone api 100r/s
+        key {remote_host}
+    }
+}
+
+# ============================================
+# Fellowship/Colibri Subdomain (Tier 2)
+# ============================================
+fellowship.privseai.com {
+    reverse_proxy http://localhost:3001 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    handle /health {
+        respond 200 "OK"
+    }
+}
+
+# ============================================
+# Girlfriend.ai Subdomain (Tier 3)
+# ============================================
+gf.privseai.com {
+    reverse_proxy http://localhost:3002 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    handle /health {
+        respond 200 "OK"
+    }
+}
+
+# ============================================
+# OmniRoute Subdomain (Tier 1.5 - Optional)
+# ============================================
+omniroute.privseai.com {
+    reverse_proxy http://localhost:4000 {
+        header_up Host {http.request.host}
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+
+    handle /health {
+        respond 200 "OK"
+    }
+}

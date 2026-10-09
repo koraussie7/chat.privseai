@@ -1,0 +1,116 @@
+# Docker Compose for PrivseAI Inference Servers
+# Run: docker-compose -f docker-compose.inference.yml up -d
+
+version: "3.8"
+
+services:
+  # ============================================
+  # Colibri WASM / Fellowship Node (Tier 2)
+  # Port: 3001
+  # ============================================
+  fellowship:
+    image: muhanai/fellowship:latest
+    container_name: privseai-fellowship
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - LOG_LEVEL=info
+      - ENABLE_WASM=true
+      - MAX_CONCURRENT=10
+      - MODEL_CACHE_DIR=/data/models
+      - PRUNE_INTERVAL=3600
+    volumes:
+      - fellowship-models:/data/models
+      - fellowship-logs:/var/log/fellowship
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 8G
+        reservations:
+          cpus: "2"
+          memory: 4G
+
+  # ============================================
+  # Girlfriend.ai Server (Tier 3)
+  # Port: 3002
+  # ============================================
+  girlfriend-ai:
+    image: giovancarl444/girlfriend-ai:latest
+    container_name: privseai-girlfriend-ai
+    restart: unless-stopped
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - DB_PATH=/data/gf.db
+      - ENABLE_NSFW=true
+      - MAX_HISTORY=50
+    volumes:
+      - girlfriend-ai-data:/data
+      - girlfriend-ai-logs:/var/log/girlfriend-ai
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 4G
+        reservations:
+          cpus: "1"
+          memory: 2G
+
+  # ============================================
+  # MuhanAI OmniRoute Proxy (Optional - if self-hosted)
+  # Port: 4000
+  # ============================================
+  omniroute:
+    image: muhanai/omniroute:latest
+    container_name: privseai-omniroute
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - ROUTER_MODE=smart
+      - DEFAULT_MODEL=omni
+      - FALLBACK_MODELS=qwen3-0.6b,qwen2.5-7b,llama3.2-3b
+      - TIMEOUT_MS=20000
+      - RATE_LIMIT=100
+    volumes:
+      - omniroute-cache:/cache
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: "2"
+          memory: 2G
+
+volumes:
+  fellowship-models:
+  fellowship-logs:
+  girlfriend-ai-data:
+  girlfriend-ai-logs:
+  omniroute-cache:
+
+networks:
+  default:
+    name: privseai-inference

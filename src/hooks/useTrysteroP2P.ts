@@ -46,7 +46,9 @@ export function useTrystero(options: UseTrysteroOptions = {}) {
     for (const callback of clientReadyRef.current) callback(client);
     setNetwork(client.getNetworkState());
 
-    client.join(roomId).catch(console.error);
+    client.join(roomId).catch((err) => {
+			console.warn("[useTrystero] P2P join failed (offline mode):", err?.message || err);
+		});
 
     const unsubPeerJoin = client.onPeerJoin(() => updateNetwork());
     const unsubPeerLeave = client.onPeerLeave(() => updateNetwork());

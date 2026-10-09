@@ -227,8 +227,8 @@ export class TrysteroP2PClient {
 	}
 
 	onColibriGateway(handler: PeerMessageHandler): () => void {
-	this.handlers.gateway.add(handler);
-	return () => this.handlers.gateway.delete(handler);
+		this.handlers.gateway.add(handler);
+		return () => this.handlers.gateway.delete(handler);
 	}
 
 	onAIPackage(handler: PeerMessageHandler): () => void {
@@ -395,16 +395,16 @@ export class TrysteroP2PClient {
 			for (const handler of this.handlers.task) handler(data, peerId);
 		};
 
-			const gateway = this.room.makeAction("colibri-gateway");
+		const gateway = this.room.makeAction("colibri-gateway");
 		gateway.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-		const info = data as ColibriGatewayInfo;
-		this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
-		for (const handler of this.handlers.gateway) handler(data, peerId);
+			const info = data as ColibriGatewayInfo;
+			this.colibriPeers.set(peerId, { ...info, peerId, timestamp: Date.now() });
+			for (const handler of this.handlers.gateway) handler(data, peerId);
 		};
 
 		const aiPackage = this.room.makeAction("ai-package");
 		aiPackage.onMessage = (data: unknown, { peerId }: { peerId: string }) => {
-		for (const handler of this.handlers.aiPackage) handler(data, peerId);
+			for (const handler of this.handlers.aiPackage) handler(data, peerId);
 		};
 		}
 
