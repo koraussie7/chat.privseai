@@ -79,7 +79,7 @@ export function companionToMyNeuro(
 			speaker: toMyNeuroId(companion.name),
 			referenceAudio: companion.voiceAudioUrl ?? "",
 		},
-		llm: { ...base.llm },
+		llm: { provider: base.llm?.provider ?? "local", model: base.llm?.model ?? DEFAULT_MODEL, endpoint: base.llm?.endpoint },
 		// A shared namespace lets several devices sync the same memory later.
 		memory: { enabled: true, namespace: toMyNeuroId(companion.id) },
 		prompts: {

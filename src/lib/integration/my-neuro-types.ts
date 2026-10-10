@@ -22,6 +22,12 @@ export interface CandyCompanionLike {
 	stage?: number;
 	greeting?: string;
 	voiceAudioUrl?: string;
+	isOnline?: boolean;
+	hasVoice?: boolean;
+	isPopular?: boolean;
+	bannerUrl?: string;
+	gallery?: unknown[];
+	scenarios?: unknown[];
 }
 
 export interface MyNeuroVoiceConfig {

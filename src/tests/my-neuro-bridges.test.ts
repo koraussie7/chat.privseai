@@ -69,7 +69,7 @@ describe("MyNeuroAdapter", () => {
 		};
 		const out = roundTripMyNeuro(original);
 		expect(out.live2dModel).toBe("/models/rin.model3.json");
-		expect(out.emotions.happy).toBe("smile");
+		expect(out.emotions?.happy).toBe("smile");
 	});
 
 	it("validates profiles and flags unsafe URLs", () => {
@@ -153,7 +153,7 @@ const entry = (id: string, content: string): MemoryEntry => ({
 	createdAt: 1700000000000,
 	lastAccessedAt: 1700000000000,
 	accessCount: 0,
-	source: "conversation",
+	source: "inferred",
 });
 
 describe("MemoryBridge", () => {

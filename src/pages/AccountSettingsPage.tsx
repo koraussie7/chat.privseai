@@ -1,5 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { ByokManager } from "@/components/ByokManager";
+import { MyNeuroPanel } from "@/components/MyNeuroPanel";
+import { MemosSyncPanel } from "@/components/MemosSyncPanel";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -227,6 +229,10 @@ export function AccountSettingsPage({ onBack }: Props) {
 						Delete Account
 					</button>
 				</div>
+
+				{/* my-neuro desktop interop + long-term memory sync */}
+				<MyNeuroPanel companion={null} />
+				<MemosSyncPanel />
 			</div>
 		</div>
 	);

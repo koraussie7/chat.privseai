@@ -4,6 +4,7 @@ import { NexusClient, NexusConfig } from "@/lib/nexus-client";
 import { NexusPairingModal } from "@/components/NexusPairingModal";
 import { ByokManager } from "@/components/ByokManager";
 import { byokProvidersReady, type ByokProviderId } from "@/lib/byok-store";
+import { TTSButton } from "@/components/TTSButton";
 
 export interface CandyMessage {
   id: string;
@@ -664,6 +665,13 @@ export function CandyChat({
                       isUser ? "text-pink-200/80" : "text-gray-400"
                     }`}
                   >
+                    {!isUser && (
+                      <TTSButton
+                        text={msg.content}
+                        companionName={companion.name}
+                        voiceAudioUrl={(companion as any).voiceAudioUrl}
+                      />
+                    )}
                     {new Date(msg.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
