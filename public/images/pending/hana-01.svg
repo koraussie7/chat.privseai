@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000" role="img" aria-label="Hana">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0d1020"/><stop offset="60%" stop-color="#151a30"/><stop offset="100%" stop-color="#0a0d19"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.45"/><stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="orb" cx="50%" cy="42%" r="46%">
+      <stop offset="0%" stop-color="#f97316" stop-opacity="0.85"/><stop offset="70%" stop-color="#ec4899" stop-opacity="0.35"/><stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="800" height="1000" fill="url(#bg)"/>
+  <rect width="800" height="460" fill="url(#glow)"/>
+  <circle cx="400" cy="420" r="180" fill="url(#orb)"/>
+  <ellipse cx="400" cy="880" rx="240" ry="120" fill="#ec4899" opacity="0.18"/>
+  <text x="400" y="948" text-anchor="middle" font-family="Georgia, serif" font-size="42" fill="#e7e9f5" opacity="0.92">Hana</text>
+</svg>
