@@ -17,6 +17,7 @@
     "deploy:skip-build": "bash scripts/deploy.sh --skip-build"
   },
   "dependencies": {
+    "@mlc-ai/web-llm": "^0.2.85",
     "@trystero-p2p/ws-relay": "^0.26.0",
     "@xenova/transformers": "^2.3.0",
     "react": "^18.3.0",

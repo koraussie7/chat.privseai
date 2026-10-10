@@ -92,7 +92,9 @@ export class WebLLMClient {
 	/**
 	 * Initialize the WebLLM engine
 	 */
-	async initialize(): Promise<void> {
+	async initialize(
+		onProgress?: (state: { progress: number; text: string; status: "loading" | "ready" }) => void,
+	): Promise<void> {
 		if (this.engine) return;
 
 		this.isLoading = true;
@@ -120,6 +122,7 @@ export class WebLLMClient {
 
 			this.loadProgress = 100;
 			this.isLoading = false;
+			onProgress?.({ progress: 1, text: "Local model ready", status: "ready" });
 			console.log(`[WebLLM] Model ${this.modelId} loaded successfully`);
 		} catch (error) {
 			this.isLoading = false;

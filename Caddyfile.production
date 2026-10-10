@@ -36,6 +36,54 @@ privseai.com, www.privseai.com {
     }
     header @static Cache-Control "public, max-age=31536000, immutable"
 
+    # ── BYOK passthrough (user's own key, server never stores it) ──
+    # /api/byok/<provider>/* -> provider upstream, Authorization forwarded untouched.
+    # The browser calls same-origin so CORS is avoided; Caddy only relays.
+    @byok_openai {
+        path /api/byok/openai/*
+    }
+    handle @byok_openai {
+        uri strip_prefix /api/byok/openai
+        reverse_proxy https://api.openai.com {
+            header_up Host api.openai.com
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    @byok_anthropic {
+        path /api/byok/anthropic/*
+    }
+    handle @byok_anthropic {
+        uri strip_prefix /api/byok/anthropic
+        reverse_proxy https://api.anthropic.com {
+            header_up Host api.anthropic.com
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    @byok_gemini {
+        path /api/byok/gemini/*
+    }
+    handle @byok_gemini {
+        uri strip_prefix /api/byok/gemini
+        reverse_proxy https://generativelanguage.googleapis.com {
+            header_up Host generativelanguage.googleapis.com
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+    @byok_openrouter {
+        path /api/byok/openrouter/*
+    }
+    handle @byok_openrouter {
+        uri strip_prefix /api/byok/openrouter
+        reverse_proxy https://openrouter.ai {
+            header_up Host openrouter.ai
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
     # API proxy -> LiteLLM (port 4003)
     handle /api/* {
         reverse_proxy http://localhost:4003 {

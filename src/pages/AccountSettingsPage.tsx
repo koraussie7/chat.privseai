@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { ByokManager } from "@/components/ByokManager";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -184,6 +185,9 @@ export function AccountSettingsPage({ onBack }: Props) {
 						</div>
 					</div>
 				)}
+
+				{/* BYOK Section — user's own AI provider keys (localStorage only) */}
+				<ByokManager />
 
 				{/* Security Section */}
 				<div className="bg-[#12141e] border border-white/10 rounded-3xl p-6">

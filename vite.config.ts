@@ -10,6 +10,14 @@ export default defineConfig(({ mode }) => {
   const openaiKey = env.OPENAI_API_KEY?.trim();
   const openaiModel = env.OPENAI_MODEL?.trim() || "gpt-4o-mini";
 
+  // Upstream bases for user BYOK passthrough (server never stores user keys).
+  const BYOK_UPSTREAMS: Record<string, string> = {
+    openai: "https://api.openai.com",
+    anthropic: "https://api.anthropic.com",
+    gemini: "https://generativelanguage.googleapis.com",
+    openrouter: "https://openrouter.ai",
+  };
+
   /**
    * Dev-only proxy: same-origin `/api/openai/*` -> `https://api.openai.com/*`.
    * - Injects the API key server-side (from `.env` OPENAI_API_KEY) so the key
@@ -20,7 +28,58 @@ export default defineConfig(({ mode }) => {
    * - Sidesteps CORS because the browser calls its own origin.
    */
   const openaiProxy = (req, res, next) => {
-    if (!req.url || !req.url.startsWith("/api/openai")) return next();
+    if (!req.url || (!req.url.startsWith("/api/openai") && !req.url.startsWith("/api/byok"))) return next();
+
+    // --- BYOK passthrough: /api/byok/<provider>/* -> provider upstream ---
+    // The user's own key arrives in the Authorization header from the browser
+    // and is forwarded untouched. The dev server never injects or stores it.
+    const byokMatch = req.url.match(/^\/api\/byok\/([a-z]+)(\/.*)?$/);
+    if (byokMatch) {
+      const provider = byokMatch[1];
+      const upstreamBase = BYOK_UPSTREAMS[provider];
+      if (!upstreamBase) {
+        res.statusCode = 400;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: { message: `unknown BYOK provider: ${provider}` } }));
+        return;
+      }
+      const upstreamPath = byokMatch[2] || "/";
+      const isBodyless = req.method === "GET" || req.method === "HEAD";
+      const chunks = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", async () => {
+        try {
+          const raw = isBodyless ? undefined : Buffer.concat(chunks).toString("utf8");
+          const headers = {};
+          // Forward auth + content headers only; strip browser framing headers.
+          for (const [k, v] of Object.entries(req.headers)) {
+            const lk = k.toLowerCase();
+            if (["host", "connection", "content-length"].includes(lk)) continue;
+            headers[k] = v;
+          }
+          if (provider === "anthropic" && !headers["anthropic-version"]) {
+            headers["anthropic-version"] = "2023-06-01";
+          }
+          const upstreamRes = await fetch(`${upstreamBase}${upstreamPath}`, {
+            method: req.method,
+            headers,
+            body: isBodyless ? undefined : raw,
+          });
+          const text = await upstreamRes.text();
+          res.statusCode = upstreamRes.status;
+          res.setHeader(
+            "Content-Type",
+            upstreamRes.headers.get("content-type") || "application/json",
+          );
+          res.end(text);
+        } catch (err) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: { message: `byok proxy error: ${String(err)}` } }));
+        }
+      });
+      return;
+    }
 
     const upstream = req.url.replace(/^\/api\/openai/, "");
     const isBodyless = req.method === "GET" || req.method === "HEAD";
@@ -136,7 +195,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       rollupOptions: {
-        external: ["@mlc-ai/web-llm", "@xenova/transformers"],
+        external: ["@xenova/transformers"],
       },
     },
   };

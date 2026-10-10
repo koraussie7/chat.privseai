@@ -3,10 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import { CandyChat } from "@/components/CandyChat";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { chatApi } from "@/lib/config";
+import { tryByokChat } from "@/lib/byok-chat";
 import { ColibriWASMClient } from "@/lib/colibri-wasm-client";
 import { GirlfriendAIClient } from "@/lib/girlfriend-ai-client";
 import { getMultiModelClient } from "@/lib/multi-model-client";
 import { PersonalityEngine } from "@/lib/personality-engine";
+import {
+	extractFactsFromMessage,
+	buildMemoryBlock,
+	maybeSummarize,
+} from "@/lib/companion-memory";
 import { DEFAULT_EMOTION_STATE } from "@/types/character";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { getOnDeviceLLM } from "@/lib/on-device-llm-client";
@@ -77,6 +83,9 @@ export function CandyChatPage() {
   const [multiModelClient] = useState(() => getMultiModelClient());
   const [onDeviceLLM] = useState(() => getOnDeviceLLM());
   const [webLLM] = useState(() => getWebLLM());
+  const [webGpuEnabled, setWebGpuEnabled] = useState(() => localStorage.getItem("privsei.webgpu.enabled") === "true");
+  const [webGpuModelId, setWebGpuModelId] = useState(() => localStorage.getItem("privsei.webgpu.model") || "Qwen2.5-0.5B-Instruct-q4f32_1-MLC");
+  const [webGpuState, setWebGpuState] = useState<{status: "idle" | "loading" | "ready" | "error"; progress: number; message: string}>({status:"idle", progress:0, message:""});
   const [chatHistory, setChatHistory] = useState<
     Array<{ role: "user" | "assistant"; content: string; timestamp: number }>
   >([]);
@@ -152,6 +161,53 @@ export function CandyChatPage() {
     );
   }, [baseCompanion.id, progress]);
 
+  const enableWebGpu = async (modelId = webGpuModelId) => {
+    setWebGpuEnabled(true);
+    setWebGpuModelId(modelId);
+    localStorage.setItem("privsei.webgpu.enabled", "true");
+    localStorage.setItem("privsei.webgpu.model", modelId);
+    const client = getWebLLM(modelId);
+    setWebGpuState({ status: "loading", progress: 0, message: "Downloading local model…" });
+    try {
+      await client.initialize((progress) => setWebGpuState({
+        status: progress.status === "ready" ? "ready" : "loading",
+        progress: progress.progress,
+        message: progress.text,
+      }));
+      setWebGpuState({ status: "ready", progress: 100, message: "Local model ready" });
+    } catch (error) {
+      setWebGpuState({ status: "error", progress: 0, message: error instanceof Error ? error.message : "WebGPU model initialization failed" });
+      throw error;
+    }
+  };
+  const disableWebGpu = () => {
+    setWebGpuEnabled(false);
+    localStorage.setItem("privsei.webgpu.enabled", "false");
+    setWebGpuState({ status: "idle", progress: 0, message: "" });
+  };
+  const respondWithWebGpu = async (text: string, systemPrompt: string, history: Array<{ role: "user" | "assistant"; content: string }>): Promise<string | null> => {
+    if (!webGpuEnabled) return null;
+    try {
+      const client = getWebLLM(webGpuModelId);
+      const { isLoading } = client.getLoadingState();
+      if (isLoading) return null;
+      if (webGpuState.status !== "ready") {
+        setWebGpuState({ status: "loading", progress: 0, message: "Loading local model…" });
+        await client.initialize((progress) => setWebGpuState({ status: progress.status === "ready" ? "ready" : "loading", progress: progress.progress, message: progress.text }));
+      }
+      const result = await client.chat([
+        { role: "system", content: systemPrompt },
+        ...history,
+        { role: "user", content: text },
+      ], { maxTokens: 512, temperature: 0.7 });
+      setWebGpuState({ status: "ready", progress: 100, message: "On-device · WebGPU" });
+      return result.error ? null : result.text;
+    } catch (error) {
+      console.warn("WebGPU unavailable; falling back to server providers", error);
+      setWebGpuState({ status: "error", progress: 0, message: "Local model unavailable; using server fallback" });
+      return null;
+    }
+  };
   const onSendMessage = async (text: string): Promise<string> => {
     const profile = {
       id: activeCompanion.id,
@@ -171,6 +227,13 @@ export function CandyChatPage() {
       DEFAULT_EMOTION_STATE,
       stage,
     );
+    // OpenPerso-inspired hybrid memory: inject remembered facts + rolling summary
+    const memoryBlock = buildMemoryBlock(baseCompanion.id, text);
+    const systemPromptWithMemory = memoryBlock
+      ? `${systemPrompt}
+
+${memoryBlock}`
+      : systemPrompt;
 
     // Build conversation history for context-aware responses
     const conversationHistory = chatHistory.map((h) =>
@@ -179,16 +242,23 @@ export function CandyChatPage() {
         : { role: "assistant" as const, content: h.content },
     );
 
+    // Optional on-device WebGPU mode. If unsupported or loading fails, continue to existing providers.
+    const localReply = await respondWithWebGpu(text, systemPromptWithMemory, conversationHistory);
+    if (localReply) return localReply;
+    // Tier 0: BYOK — user's own provider key (localStorage only, never on our servers)
+    const byokResult = await tryByokChat(text, systemPromptWithMemory, conversationHistory);
+    if (byokResult?.reply) return byokResult.reply;
+
     // Tier 1: On-device LLM (Transformers.js / Xenova)
-    const onDeviceReply = await tryOnDeviceLLM(text, systemPrompt, conversationHistory);
+    const onDeviceReply = await tryOnDeviceLLM(text, systemPromptWithMemory, conversationHistory);
     if (onDeviceReply) return onDeviceReply;
 
     // Tier 1b: WebLLM (WebGPU accelerated)
-    const webLLMReply = await tryWebLLM(text, systemPrompt, conversationHistory);
+    const webLLMReply = await tryWebLLM(text, systemPromptWithMemory, conversationHistory);
     if (webLLMReply) return webLLMReply;
 
     // Tier 1c: Nexus (User's local Nexus + local LLM)
-    const nexusResult = await tryNexusChat(text, systemPrompt, conversationHistory);
+    const nexusResult = await tryNexusChat(text, systemPromptWithMemory, conversationHistory);
     if (nexusResult.reply) return nexusResult.reply;
 
     try {
@@ -401,15 +471,27 @@ export function CandyChatPage() {
         companion={activeCompanion}
         companions={companions}
         onSelectCompanion={(id) => navigate(`/chat/${id}`)}
+        webGpuEnabled={webGpuEnabled}
+        webGpuState={webGpuState}
+        onEnableWebGpu={enableWebGpu}
+        onDisableWebGpu={disableWebGpu}
         onSendMessage={(message) => {
           const replyP = onSendMessage(message);
           replyP
             .then((reply) => {
-              setChatHistory((prev) => [
-                ...prev,
-                { role: "user", content: message, timestamp: Date.now() },
-                { role: "assistant", content: reply, timestamp: Date.now() },
-              ]);
+              setChatHistory((prev) => {
+                const next = [
+                  ...prev,
+                  { role: "user" as const, content: message, timestamp: Date.now() },
+                  { role: "assistant" as const, content: reply, timestamp: Date.now() },
+                ];
+                // OpenPerso-style memory: fact extraction + rolling auto-summary
+                try {
+                  extractFactsFromMessage(baseCompanion.id, message);
+                  maybeSummarize(baseCompanion.id, next);
+                } catch { /* memory is best-effort */ }
+                return next;
+              });
             })
             .catch(() => {});
           return replyP;

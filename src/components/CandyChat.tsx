@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from "react";
 import type { CandyCompanion } from "@/data/candyPresets";
 import { NexusClient, NexusConfig } from "@/lib/nexus-client";
 import { NexusPairingModal } from "@/components/NexusPairingModal";
+import { ByokManager } from "@/components/ByokManager";
+import { byokProvidersReady, type ByokProviderId } from "@/lib/byok-store";
 
 export interface CandyMessage {
   id: string;
@@ -19,6 +21,10 @@ interface Props {
   onSelectCompanion: (id: string) => void;
   onSendMessage: (text: string) => Promise<string>;
   onStageProgress?: (newStage: number) => void;
+  webGpuEnabled?: boolean;
+  webGpuState?: { status: "idle" | "loading" | "ready" | "error"; progress: number; message: string };
+  onEnableWebGpu?: () => void;
+  onDisableWebGpu?: () => void;
 }
 
 const STAGE_TITLES = [
@@ -43,6 +49,10 @@ export function CandyChat({
   onSelectCompanion,
   onSendMessage,
   onStageProgress,
+  webGpuEnabled = false,
+  webGpuState = { status: "idle", progress: 0, message: "" },
+  onEnableWebGpu,
+  onDisableWebGpu,
 }: Props) {
   const [messages, setMessages] = useState<CandyMessage[]>([]);
   const [input, setInput] = useState("");
@@ -59,6 +69,13 @@ export function CandyChat({
   // Audio player state
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // BYOK nudge: show a one-time key-setup prompt when no provider key exists.
+  const [byokReady, setByokReady] = useState<ByokProviderId[]>(() => byokProvidersReady());
+  const [byokPromptOpen, setByokPromptOpen] = useState(false);
+  const [byokDismissed, setByokDismissed] = useState(
+    () => localStorage.getItem("byok_prompt_dismissed") === "1",
+  );
 
   // Relationship affinity progress: restore the saved stage on chat re-entry.
   const progressKey = "privseai_candy_relationship_progress";
@@ -437,6 +454,42 @@ export function CandyChat({
 
           {/* Top Actions */}
           <div className="flex items-center gap-2">
+            {/* On-device WebGPU chat toggle */}
+            {(onEnableWebGpu || onDisableWebGpu) && (
+              <button
+                type="button"
+                onClick={() => (webGpuEnabled ? onDisableWebGpu?.() : onEnableWebGpu?.())}
+                title={webGpuState.message || "Run the chat model locally in your browser (WebGPU)"}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                  webGpuState.status === "ready"
+                    ? "bg-violet-500/15 text-violet-200 border border-violet-500/30"
+                    : webGpuState.status === "error"
+                    ? "bg-amber-500/15 text-amber-200 border border-amber-500/30"
+                    : webGpuEnabled
+                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
+                    : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  webGpuState.status === "ready"
+                    ? "bg-violet-300"
+                    : webGpuState.status === "error"
+                    ? "bg-amber-300"
+                    : webGpuEnabled
+                    ? "bg-cyan-300 animate-pulse"
+                    : "bg-gray-500"
+                }`} />
+                <span className="text-[10px] font-medium">
+                  {webGpuState.status === "loading"
+                    ? `Local ${Math.round(webGpuState.progress * 100)}%`
+                    : webGpuState.status === "ready"
+                    ? "Local · WebGPU"
+                    : webGpuEnabled
+                    ? "Local 준비 중"
+                    : "Local AI"}
+                </span>
+              </button>
+            )}
             {/* Nexus Connection Status */}
             <div className="flex items-center gap-2 mr-2">
               <button
@@ -677,6 +730,55 @@ export function CandyChat({
           </div>
 
           {/* Chat Text Input Area */}
+          {byokReady.length === 0 && !byokDismissed && !byokPromptOpen ? (
+            <button
+              type="button"
+              onClick={() => setByokPromptOpen(true)}
+              className="mb-2 w-full flex items-center justify-between gap-2 px-3 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-left hover:bg-amber-500/15 transition"
+            >
+              <span className="text-xs text-amber-200">
+                🔑 Add your own AI key for real chat (free site, your account pays only what you use)
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                aria-label="Dismiss"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setByokDismissed(true);
+                  localStorage.setItem("byok_prompt_dismissed", "1");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.stopPropagation();
+                    setByokDismissed(true);
+                    localStorage.setItem("byok_prompt_dismissed", "1");
+                  }
+                }}
+                className="text-amber-300/70 hover:text-amber-200 text-sm px-1"
+              >
+                ✕
+              </span>
+            </button>
+          ) : null}
+          {byokPromptOpen ? (
+            <div className="mb-2 rounded-2xl border border-white/10 bg-[#12141e] p-3">
+              <ByokManager
+                compact
+                onKeysChange={(ready) => {
+                  setByokReady(ready);
+                  if (ready.length > 0) setByokPromptOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setByokPromptOpen(false)}
+                className="mt-2 text-[11px] text-gray-400 hover:text-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-end gap-2">
             <textarea
               rows={1}
