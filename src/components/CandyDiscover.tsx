@@ -3,6 +3,7 @@ import { useAIHub } from "@/hooks/useAIHub";
 import { CharacterCardParser } from "@/lib/character-card";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { StockImageSearch } from "@/components/StockImageSearch";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -119,6 +120,8 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 					</div>
 				</div>
 			</div>
+
+			<StockImageSearch />
 
 			{/* Filter Tabs & Search Bar */}
 			<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">

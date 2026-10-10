@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CandyChat } from "@/components/CandyChat";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
-import { api } from "@/lib/config";
+import { chatApi } from "@/lib/config";
 import { ColibriWASMClient } from "@/lib/colibri-wasm-client";
 import { GirlfriendAIClient } from "@/lib/girlfriend-ai-client";
 import { getMultiModelClient } from "@/lib/multi-model-client";
@@ -11,6 +11,7 @@ import { DEFAULT_EMOTION_STATE } from "@/types/character";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { getOnDeviceLLM } from "@/lib/on-device-llm-client";
 import { getWebLLM } from "@/lib/webllm-client";
+import { tryNexusChat } from "@/lib/nexus-chat";
 
 const STORAGE_KEY_CUSTOM = "privseai_candy_custom_companions";
 const STORAGE_KEY_PROGRESS = "privseai_candy_relationship_progress";
@@ -186,6 +187,10 @@ export function CandyChatPage() {
     const webLLMReply = await tryWebLLM(text, systemPrompt, conversationHistory);
     if (webLLMReply) return webLLMReply;
 
+    // Tier 1c: Nexus (User's local Nexus + local LLM)
+    const nexusResult = await tryNexusChat(text, systemPrompt, conversationHistory);
+    if (nexusResult.reply) return nexusResult.reply;
+
     try {
       const byok = localStorage.getItem("byok_key")?.trim();
       let apiKey: string | undefined;
@@ -210,7 +215,7 @@ export function CandyChatPage() {
         ? { baseUrl: nearestColibri.baseUrl, model: nearestColibri.model }
         : undefined;
 
-      const res = await fetch(api("/v1/chat/completions"), {
+      const res = await fetch(chatApi("/v1/chat/completions"), {
         method: "POST",
         credentials: "include",
         headers: {
@@ -218,7 +223,7 @@ export function CandyChatPage() {
           ...(apiKey ? { Authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify({
-          model: "smart",
+          model: "gpt-4o-mini",
           messages: [
             { role: "system", content: systemPrompt },
             ...conversationHistory,
@@ -287,7 +292,7 @@ export function CandyChatPage() {
       ];
 
       const result = await multiModelClient.chat(messages, {
-        model: "smart",
+        model: "gpt-4o-mini",
         temperature: 0.7,
         maxTokens: 512,
         colibri: undefined,

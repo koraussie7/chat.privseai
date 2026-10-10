@@ -12,18 +12,21 @@ import { WorldCockpit } from "@/components/WorldCockpit";
 import { CANDY_PRESETS, loadAllCandyPresets, type CandyCompanion } from "@/data/candyPresets";
 import { useAuth } from "@/hooks/useAuth";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
+import { useI18n } from "@/lib/i18n";
 import { AIHubPage } from "@/pages/AIHubPage";
 import { APIKeysPage } from "@/pages/APIKeysPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
 import { CandyChatPage } from "@/pages/CandyChatPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
+import { MarketplacePage } from "@/pages/MarketplacePage";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
 const STORAGE_CUSTOM = "privseai_candy-custom_companions";
 
 export function App() {
+	const { t } = useI18n();
 	const [companions, setCompanions] = useState<CandyCompanion[]>(() => {
 		const saved = localStorage.getItem(STORAGE_CUSTOM);
 		if (saved) {
@@ -218,6 +221,13 @@ export function App() {
 							>
 								💎 Pricing
 							</NavLink>
+							<NavLink
+								to="/marketplace"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🛍️ {t("marketplace.menu")}
+							</NavLink>
 						</div>
 					)}
 
@@ -317,6 +327,7 @@ export function App() {
 								}
 							/>
 							<Route path="/pricing" element={<PricingPage onBack={goHome} />} />
+							<Route path="/marketplace" element={<AuthGate><MarketplacePage /></AuthGate>} />
 							<Route
 								path="/settings"
 								element={

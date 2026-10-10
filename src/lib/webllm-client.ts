@@ -99,10 +99,16 @@ export class WebLLMClient {
 		this.loadProgress = 0;
 
 		try {
-			// Dynamic import to avoid SSR issues
-			const mod = await import("@mlc-ai/web-llm");
+			// Dynamic import to avoid SSR issues. The specifier is held in a
+			// variable and marked @vite-ignore so Vite does NOT statically
+			// resolve/bundle it (the optional @mlc-ai/web-llm package may not be
+			// installed; inlining it would break the app on load). If it is
+			// missing at runtime, on-device WebLLM is skipped and the caller falls
+			// back to the remote OpenAI proxy. To enable it:
+			//   npm i @mlc-ai/web-llm
+			const specifier = "@mlc-ai/web-llm";
+			const mod = await import(/* @vite-ignore */ specifier);
 
-			// @ts-expect-error - WebLLM module structure
 			this.engine = await mod.CreateMLCEngine(this.modelId, {
 				initProgressCallback: (report: { progress: number; text: string }) => {
 					this.loadProgress = Math.round(report.progress * 100);

@@ -75,7 +75,12 @@ export async function cacheImage(
 	payload: Omit<CachedImage, "pkgId" | "placeholderUrl">,
 ): Promise<void> {
 	await tx("readwrite", (store) =>
-		store.put({ key: key(pkgId, placeholderUrl), pkgId, placeholderUrl, ...payload }),
+		store.put({
+			key: key(pkgId, placeholderUrl),
+			pkgId,
+			placeholderUrl,
+			...payload,
+		}),
 	);
 }
 
@@ -116,18 +121,29 @@ export function uploadedImageKey(id: string): string {
 }
 
 /** Persist a user-uploaded image blob across reloads. */
-export async function cacheUploadedImage(input: { id: string; title: string; blob: Blob; generatedAt: number }): Promise<void> {
+export async function cacheUploadedImage(input: {
+	id: string;
+	title: string;
+	blob: Blob;
+	generatedAt: number;
+}): Promise<void> {
 	const placeholderUrl = uploadedImageKey(input.id);
 	await cacheImage("__uploads__", placeholderUrl, {
-		url: placeholderUrl, title: input.title, prompt: "", model: "uploaded",
-		generatedAt: input.generatedAt, blob: input.blob,
+		url: placeholderUrl,
+		title: input.title,
+		prompt: "",
+		model: "uploaded",
+		generatedAt: input.generatedAt,
+		blob: input.blob,
 	});
 }
 
 /** Return all upload records in creation order. */
 export async function getCachedUploads(): Promise<CachedImage[]> {
 	const all = await getAllCachedImages();
-	return all.filter((image) => image.pkgId === "__uploads__" && image.placeholderUrl.startsWith("upload:")).sort((a, b) => a.generatedAt - b.generatedAt);
+	return all
+		.filter((image) => image.pkgId === "__uploads__" && image.placeholderUrl.startsWith("upload:"))
+		.sort((a, b) => a.generatedAt - b.generatedAt);
 }
 
 /** Remove an uploaded image from persistent storage. */

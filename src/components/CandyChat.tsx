@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { CandyCompanion } from "@/data/candyPresets";
+import { NexusClient, NexusConfig } from "@/lib/nexus-client";
+import { NexusPairingModal } from "@/components/NexusPairingModal";
 
 export interface CandyMessage {
   id: string;
@@ -91,6 +93,36 @@ export function CandyChat({
       if (nextStage > currentStage) onStageProgress?.(nextStage);
       return next;
     });
+  };
+
+  // Nexus connection state
+  const [nexusStatus, setNexusStatus] = useState<"disconnected" | "connecting" | "connected" | "error">(
+    "disconnected"
+  );
+  const [nexusPairingOpen, setNexusPairingOpen] = useState(false);
+  const [activeNexusDevice, setActiveNexusDevice] = useState<NexusConfig | null>(() =>
+    NexusClient.getActiveDevice()
+  );
+
+  useEffect(() => {
+    const checkNexus = async () => {
+      const device = NexusClient.getActiveDevice();
+      if (device) {
+        setActiveNexusDevice(device);
+        const client = new NexusClient(device);
+        const status = await client.checkConnection();
+        setNexusStatus(status.online ? "connected" : "error");
+      } else {
+        setNexusStatus("disconnected");
+      }
+    };
+    checkNexus();
+  }, []);
+
+  const handleNexusPair = () => setNexusPairingOpen(true);
+  const handleNexusConnected = (device: any) => {
+    setActiveNexusDevice(device);
+    setNexusStatus("connected");
   };
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -405,6 +437,53 @@ export function CandyChat({
 
           {/* Top Actions */}
           <div className="flex items-center gap-2">
+            {/* Nexus Connection Status */}
+            <div className="flex items-center gap-2 mr-2">
+              <button
+                type="button"
+                onClick={() => handleNexusPair()}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition ${
+                  nexusStatus === "connected"
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                    : nexusStatus === "connecting"
+                    ? "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
+                    : nexusStatus === "error"
+                    ? "bg-rose-500/15 text-rose-300 border border-rose-500/30"
+                    : "bg-white/5 text-gray-400 border border-white/10 hover:bg-white/10"
+                }`}
+                title={
+                  nexusStatus === "connected"
+                    ? "Nexus 연결됨 - 클릭하여 관리"
+                    : nexusStatus === "connecting"
+                    ? "연결 중..."
+                    : nexusStatus === "error"
+                    ? "Nexus 연결 오류 - 클릭하여 재시도"
+                    : "Nexus 연결 안됨 - 클릭하여 연결"
+                }
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  nexusStatus === "connected"
+                    ? "bg-emerald-400 animate-pulse"
+                    : nexusStatus === "connecting"
+                    ? "bg-cyan-400 animate-pulse"
+                    : nexusStatus === "error"
+                    ? "bg-rose-400"
+                    : "bg-gray-500"
+                }`} />
+                <span className="text-[10px] font-medium">
+                  {nexusStatus === "connected" && activeNexusDevice
+                    ? `Nexus: ${activeNexusDevice.deviceName}`
+                    : nexusStatus === "connected"
+                    ? "Nexus 연결됨"
+                    : nexusStatus === "connecting"
+                    ? "연결 중..."
+                    : nexusStatus === "error"
+                    ? "Nexus 오류"
+                    : "Nexus 연결"}
+                </span>
+              </button>
+            </div>
+
             {/* Affinity Stage Progress Bar (Compact) */}
             <div className="hidden sm:flex flex-col items-end mr-2">
               <div className="text-[11px] font-semibold text-pink-300">
@@ -883,6 +962,14 @@ export function CandyChat({
             </button>
           </div>
         </div>
+      )}
+
+      {/* Nexus Pairing Modal */}
+      {nexusPairingOpen && (
+        <NexusPairingModal
+          onDevicePaired={handleNexusConnected}
+          onClose={() => setNexusPairingOpen(false)}
+        />
       )}
     </div>
   );

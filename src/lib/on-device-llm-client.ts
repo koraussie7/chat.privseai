@@ -22,8 +22,22 @@ async function getPipeline(): Promise<
 	(task: string, model: string, opts?: Record<string, unknown>) => Promise<unknown>
 > {
 	if (_pipeline) return _pipeline as never;
-	const mod = await import("@xenova/transformers");
-	_pipeline = (mod.pipeline ?? (mod as { default?: unknown }).default) as never;
+	// Load Transformers.js lazily. The specifier is held in a variable and
+	// marked @vite-ignore so Vite does NOT try to statically resolve/bundle it
+	// at build time (the package may not be installed, and inlining this heavy
+	// WASM dependency would break the app on load). If it is unavailable at
+	// runtime, on-device inference is skipped and the caller falls back to the
+	// remote OpenAI proxy. To enable on-device inference, install it:
+	//   npm i @xenova/transformers
+	const specifier = "@xenova/transformers";
+	try {
+		const mod = await import(/* @vite-ignore */ specifier);
+		_pipeline = ((mod as { pipeline?: unknown }).pipeline ??
+			(mod as { default?: unknown }).default) as never;
+	} catch {
+		// Optional dependency missing at runtime — disable on-device inference.
+		return null as never;
+	}
 	return _pipeline as never;
 }
 
@@ -168,6 +182,11 @@ export class OnDeviceLLMClient {
 
 			// Create the text generation pipeline
 			const p = await getPipeline();
+			if (!p) {
+				throw new Error(
+					"@xenova/transformers is not installed; on-device inference is unavailable (run `npm i @xenova/transformers` to enable)",
+				);
+			}
 			const generated = await p("text-generation", this.modelId, {
 				device: "webgpu", // Try WebGPU first, fallback to wasm
 				dtype: "q4", // Use 4-bit quantization

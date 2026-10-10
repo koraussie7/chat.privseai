@@ -54,28 +54,28 @@ export interface ModelEndpoint {
 
 const DEFAULT_ENDPOINTS: ModelEndpoint[] = [
 	{
-		name: "privseai-api",
-		url: "https://api.privseai.com/v1/chat/completions",
-		models: ["gpt-4o-mini", "gpt-4o", "gpt-4", "smart", "omni"],
+		name: "openai-primary",
+		url: "https://api.openai.com/v1/chat/completions",
+		models: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "smart"],
 		priority: 1,
 		timeout: 15000,
 		enabled: true,
 	},
 	{
+		name: "privseai-api",
+		url: "https://api.privseai.com/v1/chat/completions",
+		models: ["gpt-4o-mini", "gpt-4o", "gpt-4", "smart", "omni"],
+		priority: 2,
+		timeout: 15000,
+		enabled: false,
+	},
+	{
 		name: "muhanai-omni",
 		url: "https://api.muhanai.com/omni/v1/chat/completions",
 		models: ["gpt-4o-mini", "gpt-4o", "claude-3-sonnet", "claude-3-haiku", "smart"],
-		priority: 2,
-		timeout: 20000,
-		enabled: true,
-	},
-	{
-		name: "openai-primary",
-		url: "https://api.openai.com/v1/chat/completions",
-		models: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "smart"],
 		priority: 3,
-		timeout: 15000,
-		enabled: true,
+		timeout: 20000,
+		enabled: false,
 	},
 	{
 		name: "anthropic",
@@ -83,7 +83,7 @@ const DEFAULT_ENDPOINTS: ModelEndpoint[] = [
 		models: ["claude-3-sonnet", "claude-3-haiku", "claude-3-opus"],
 		priority: 4,
 		timeout: 30000,
-		enabled: true,
+		enabled: false,
 	},
 	{
 		name: "openrouter",
@@ -91,7 +91,7 @@ const DEFAULT_ENDPOINTS: ModelEndpoint[] = [
 		models: ["gpt-4o-mini", "gpt-4o", "claude-3-sonnet", "llama-3.1-70b", "llama-3.1-8b", "mixtral-8x7b", "smart"],
 		priority: 5,
 		timeout: 30000,
-		enabled: true,
+		enabled: false,
 	},
 ];
 

@@ -18,6 +18,10 @@ import type { CompanionProfile } from "@/components/CompanionChat";
 import { CharacterCardParser } from "@/lib/character-card";
 import { ComfyUIClient, NSFW_WORKFLOW, VIDEO_WORKFLOW } from "@/lib/comfyui-client";
 import { ModelDistributor } from "@/lib/model-distributor";
+import {
+	stockImageToImageAsset,
+	type StockImage,
+} from "@/lib/stock-image-client";
 import type { TrysteroP2PClient } from "@/lib/trystero-client";
 import type {
 	AIHubStats,
@@ -401,6 +405,27 @@ export class AIHub {
 		}
 		if (this.client.getNetworkState().peerCount === 0) {
 			return { success: false, error: "No P2P peers are currently connected" };
+		}
+		// Block P2P redistribution of stock-sourced media to honor their licenses.
+		const hasStockAssets =
+			(pkg.media.images ?? []).some(
+				(img) =>
+					img.metadata?.source === "unsplash" ||
+					img.metadata?.source === "wikimedia",
+			) ||
+			(pkg.media.videos ?? []).some((v) => {
+				const m = (v as unknown as { metadata?: { source?: string } }).metadata;
+				return m?.source === "picsum" || m?.source === "wikimedia";
+			});
+		if (hasStockAssets) {
+			const safe = this._stripStockAssets(pkg);
+			if (!safe) {
+				return {
+					success: false,
+					error: "Package contains only stock-sourced media (cannot redistribute).",
+				};
+			}
+			pkg = safe;
 		}
 
 		const serializable = this._serializeForNetwork(pkg);
@@ -1217,6 +1242,64 @@ export class AIHub {
 	getTrendingScores(): Map<string, number> {
 		return new Map(this.trendingScores);
 	}
+	/* ---------------------------------------------------------- */
+	/* Stock image integration (safe / ToS-friendly sources)      */
+	/* ---------------------------------------------------------- */
+
+	/**
+	 * Attach a stock image (Unsplash / Wikimedia) to a package.
+	 * Stock images are always safe (isNSFW=false), always tagged
+	 * with their source + license in metadata, and are NOT eligible
+	 * for P2P redistribution (see sharePackage gate).
+	 */
+	addStockImage(pkgId: string, stock: StockImage): ImageAsset | null {
+		const pkg = this.packages.get(pkgId);
+		if (!pkg) return null;
+		const asset = stockImageToImageAsset(stock);
+		const result = this.addImageAsset(pkgId, asset);
+		return result ? asset : null;
+	}
+
+	/**
+	 * Filter helper: returns only AI-generated (non-stock) image assets.
+	 * UI uses this to separate "Generated" / "Stock" tabs.
+	 */
+	getPackageImagesGenerated(pkgId: string): ImageAsset[] {
+		return this.getPackageImages(pkgId).filter(
+			(img) => !img.metadata?.source,
+		);
+	}
+
+	/**
+	 * Filter helper: returns only stock-sourced image assets.
+	 */
+	getPackageImagesStock(pkgId: string): ImageAsset[] {
+		return this.getPackageImages(pkgId).filter(
+			(img) =>
+				img.metadata?.source === "picsum" ||
+				img.metadata?.source === "wikimedia",
+		);
+	}
+
+	/**
+	 * Return a shallow copy of `pkg` with all stock-sourced images and
+	 * videos removed (used by `sharePackage` to honor license terms).
+	 * Returns null if nothing would remain.
+	 */
+	private _stripStockAssets(pkg: AIPackage): AIPackage | null {
+		const isStock = (m?: Record<string, unknown>): boolean =>
+			!!m && (m.source === "picsum" || m.source === "wikimedia");
+		const images = (pkg.media.images ?? []).filter(
+			(img) => !isStock(img.metadata as Record<string, unknown> | undefined),
+		);
+		const videos = (pkg.media.videos ?? []).filter((v) => {
+			const m = (v as unknown as { metadata?: Record<string, unknown> }).metadata;
+			return !isStock(m);
+		});
+		if (images.length === 0 && videos.length === 0) return null;
+		return { ...pkg, media: { ...pkg.media, images, videos } };
+	}
+
 }
 
 export { AI_PACKAGE_ACTION, DEFAULT_CONFIG, DEFAULT_MEDIA, DEFAULT_MCP_TOOLS };

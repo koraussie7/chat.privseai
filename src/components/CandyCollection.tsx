@@ -2,8 +2,10 @@ import { CharacterDetailView } from "@/components/CharacterDetailView";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useAIHub } from "@/hooks/useAIHub";
 import { ageVerifier } from "@/lib/age-verification";
-import { useMemo, useState, useEffect, useRef } from "react";
 import { cacheUploadedImage, deleteCachedUpload, getCachedUploads } from "@/lib/image-cache";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { StockImageSearch } from "@/components/StockImageSearch";
+import { PromptStudio } from "@/components/PromptStudio";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -29,8 +31,8 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [userUploads, setUserUploads] = useState<UserUpload[]>([]);
-  const [uploading, setUploading] = useState(false);
   const uploadObjectUrls = useRef(new Set<string>());
+  const [uploading, setUploading] = useState(false);
   useEffect(() => () => {
     for (const url of uploadObjectUrls.current) URL.revokeObjectURL(url);
     uploadObjectUrls.current.clear();
@@ -43,14 +45,22 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
       const restored = items.map((item) => {
         const url = URL.createObjectURL(item.blob);
         objectUrls.push(url);
-        return { id: item.placeholderUrl.replace(/^upload:/, ""), url, title: item.title, generatedAt: item.generatedAt };
+        return {
+          id: item.placeholderUrl.replace(/^upload:/, ""),
+          url,
+          title: item.title,
+          generatedAt: item.generatedAt,
+        };
       });
       setUserUploads(restored);
     }).catch((error) => {
       console.error("Failed to restore uploaded images", error);
       if (!cancelled) setUploadError("Saved uploads could not be restored from this browser.");
     });
-    return () => { cancelled = true; for (const url of objectUrls) URL.revokeObjectURL(url); };
+    return () => {
+      cancelled = true;
+      for (const url of objectUrls) URL.revokeObjectURL(url);
+    };
   }, []);
   const selectedCharacter = useMemo(
     () => companions.find((c) => c.id === selectedCharacterId) ?? null,
@@ -61,32 +71,57 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
     const files = Array.from(e.target.files ?? []);
     e.target.value = "";
     if (!files.length) return;
-    setUploading(true); setUploadError(null);
+    setUploading(true);
+    setUploadError(null);
     const added: UserUpload[] = [];
     try {
       for (const file of files) {
         if (!file.type.startsWith("image/")) continue;
-        if (file.size > 20 * 1024 * 1024) throw new Error(`${file.name}: image exceeds the 20 MB limit.`);
-        const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        if (file.size > 20 * 1024 * 1024) {
+          throw new Error(`${file.name}: image exceeds the 20 MB limit.`);
+        }
+        const id = typeof crypto !== "undefined" && "randomUUID" in crypto
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
         const generatedAt = Date.now();
-        await cacheUploadedImage({ id, title: file.name.replace(/\.[^.]+$/, ""), blob: file, generatedAt });
-        const url = URL.createObjectURL(file); uploadObjectUrls.current.add(url);
-        added.push({ id, url, title: file.name.replace(/\.[^.]+$/, ""), generatedAt });
+        await cacheUploadedImage({
+          id,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          blob: file,
+          generatedAt,
+        });
+        const objectUrl = URL.createObjectURL(file);
+        uploadObjectUrls.current.add(objectUrl);
+        added.push({
+          id,
+          url: objectUrl,
+          title: file.name.replace(/\.[^.]+$/, ""),
+          generatedAt,
+        });
       }
       setUserUploads((current) => [...added, ...current]);
       setUploadError(added.length ? null : "Choose one or more image files to upload.");
     } catch (error) {
-      for (const item of added) { URL.revokeObjectURL(item.url); uploadObjectUrls.current.delete(item.url); }
+      for (const item of added) {
+        URL.revokeObjectURL(item.url);
+        uploadObjectUrls.current.delete(item.url);
+      }
       const message = error instanceof Error ? error.message : "Image upload could not be saved.";
       setUploadError(`${message} Check browser storage availability and try again.`);
-    } finally { setUploading(false); }
+    } finally {
+      setUploading(false);
+    }
   };
+
   const handleDeleteUpload = async (upload: UserUpload) => {
     try {
       await deleteCachedUpload(upload.id);
       setUserUploads((current) => current.filter((item) => item.id !== upload.id));
-      URL.revokeObjectURL(upload.url); uploadObjectUrls.current.delete(upload.url);
-    } catch { setUploadError("Could not delete this saved upload from browser storage."); }
+      URL.revokeObjectURL(upload.url);
+      uploadObjectUrls.current.delete(upload.url);
+    } catch {
+      setUploadError("Could not delete this saved upload from browser storage.");
+    }
   };
 
 const allPhotos = useMemo(
@@ -138,6 +173,26 @@ const allPhotos = useMemo(
     }));
   }, [aiHub, tick]);
 
+  // Stock images (Unsplash + Wikimedia) attached to any package via AIHub.
+  const stockImages = useMemo(() => {
+    const packages = aiHub.getAllPackages();
+    const out: { id: string; url: string; title: string; companionName: string; source: string }[] = [];
+    for (const pkg of packages) {
+      const stock = aiHub.getPackageImagesStock(pkg.id);
+      for (const img of stock) {
+        const src = (img.metadata?.source as string) ?? 'unknown';
+        out.push({
+          id: img.id,
+          url: img.thumbnailUrl || img.url,
+          title: img.title,
+          companionName: pkg.metadata?.name ?? 'Companion',
+          source: src,
+        });
+      }
+    }
+    return out;
+  }, [aiHub, tick]);
+
   // Only images explicitly marked isNSFW in gallery metadata are shown as 18+.
   // Check if user is age-verified for NSFW content
   const [isAgeVerified, setIsAgeVerified] = useState(false);
@@ -160,7 +215,7 @@ const allPhotos = useMemo(
       id: "images",
       label: "Images",
       icon: "🖼",
-      count: allPhotos.length + generatedImages.length + userUploads.length + (isAgeVerified ? nsfwPhotos.length : 0),
+      count: allPhotos.length + generatedImages.length + stockImages.length + (isAgeVerified ? nsfwPhotos.length : 0),
     },
     {
       id: "videos",
@@ -262,6 +317,8 @@ const allPhotos = useMemo(
 
 {activeTab === "images" && (
         <div className="flex flex-col gap-4">
+          <StockImageSearch />
+          <PromptStudio />
           {uploadError && (
             <div className="p-3 bg-rose-500/20 border border-rose-500/50 rounded-xl text-rose-200 text-sm">
               {uploadError}
@@ -365,6 +422,7 @@ const allPhotos = useMemo(
                 </div>
               </div>
             ))}
+            {/* Persisted images uploaded in this browser */}
             {userUploads.map((upload) => (
               <div key={`upload-${upload.id}`} className="mb-4 break-inside-[200px] rounded-2xl overflow-hidden border-white/10 group relative">
                 <button type="button" onClick={() => { setSelectedImage(upload.url); setSelectedImageTitle(upload.title); }} className="block w-full cursor-zoom-in">
@@ -401,6 +459,30 @@ const allPhotos = useMemo(
                   <div className="text-[10px] text-pink-300">
                     {img.companionName}
                   </div>
+                </div>
+              </div>
+            ))}
+            {/* Stock images (Unsplash / Wikimedia) — ToS-safe, marked with source badge */}
+            {stockImages.map((img) => (
+              <div
+                key={`stock-${img.id}`}
+                onClick={() => {
+                  setSelectedImage(img.url);
+                  setSelectedImageTitle(img.title);
+                }}
+                className="mb-4 break-inside-[200px] cursor-zoom-in rounded-2xl overflow-hidden border border-white/10 hover:border-emerald-500/50 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/10 group relative"
+              >
+                <img
+                  src={img.url}
+                  alt={img.title}
+                  className="w-full rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                />
+                <div className="absolute top-2 right-2 bg-emerald-500/80 text-white text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded-full font-bold">
+                  {img.source}
+                </div>
+                <div className="p-2">
+                  <div className="text-xs font-bold text-white truncate">{img.title}</div>
+                  <div className="text-[10px] text-emerald-300">📦 {img.companionName}</div>
                 </div>
               </div>
             ))}
