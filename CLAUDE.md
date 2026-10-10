@@ -142,6 +142,36 @@ curl -sS "https://privseai.com/collection" | grep -oE 'index-[A-Za-z0-9]+\.js'
 - 캐릭터 카드 v2 스키마에 `prompt` 필드 추가 + P2P 직렬화
 - 비디오: Seedance-style prompt → ComfyUI VIDEO_WORKFLOW 매핑
 
+### ✅ `0xzr/freellmpool` — 통합 완료 (2026-10-10)
+
+** 이게 뭔가**: 22개 무료 LLM 프로바이더(178 chat route)를 하나의 OpenAI 호환
+엔드포인트로 묶는 MIT 게이트웨이. 자동 failover + 일별 프로바이더 부하 분산.
+키 없이(keyless route)도 구동 가능.
+
+**통합 방식**: freellmpool 자체에는 유저 개념이 없어서(단일 `proxy_key`,
+글로벌 쿼터), 앞단에 `server/quota-gateway.py`(stdlib Python)를 얹어
+**유저별 일일 요청/토큰 쿼터**를 구현:
+
+```
+browser ──(Bearer qp_...)──▶ Caddy /freellm/* ──▶ quota-gateway :4005 ──▶ freellmpool :8080
+```
+
+- 유저 키: 브라우저가 자동 발급(`localStorage["privsei.quota.key"]`),
+  등록 키는 `POST /v1/keys` + `ADMIN_TOKEN`으로 발급(유저별 한도 지정 가능)
+- 한도 초과 시 OpenAI 스타일 429 + `X-Quota-Reset` 헤더
+- 기본 한도: 100 req / 200K tokens 유저별 UTC일 (env 조정)
+- 채팅은 `multi-model-client.ts`의 priority 2 엔드포인트로 자동 failover에 포함
+- 상세: `INTEGRATION_FREELLMPOOL.md`
+
+**핵심 파일**: `server/quota-gateway.py`, `src/lib/freellmpool-client.ts`,
+`src/tests/freellmpool-client.test.ts` (11 tests), docker-compose의
+`freellmpool`/`quota-gateway` 서비스, Caddyfile의 `/freellm` 블록.
+
+**주의**: 쿼터는 advisory — 프로바이더 실제 무료 한도를 보장하지 않음.
+ToS 관점에서 무료 티어 재방출은 gray area (INTEGRATION 문서의 Caveats 참고).
+
+---
+
 ### 검토 대기
 
 - `meshtastic/network-management-client` — LoRa 메시 네트워크 관리 데스크톱 앱.

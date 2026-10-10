@@ -12,6 +12,9 @@
  * Guarantees chat always works by trying all backends sequentially.
  */
 
+import { quotaGatewayUrl } from "@/lib/config";
+import { getQuotaKey } from "@/lib/freellmpool-client";
+
 export interface ChatMessage {
 	role: "system" | "user" | "assistant";
 	content: string;
@@ -59,6 +62,18 @@ const DEFAULT_ENDPOINTS: ModelEndpoint[] = [
 		models: ["gpt-4o-mini", "gpt-4o", "gpt-4-turbo", "smart"],
 		priority: 1,
 		timeout: 15000,
+		enabled: true,
+	},
+	{
+		// freellmpool quota-gateway: pooled free LLM tiers with per-user
+		// daily quotas (see freellmpool-client.ts / INTEGRATION_FREELLMPOOL.md).
+		// The user's quota key goes out as the Bearer token — the gateway
+		// maps it to a per-user quota bucket server-side.
+		name: "freellmpool",
+		url: `${quotaGatewayUrl()}/v1/chat/completions`,
+		models: ["gpt-4o-mini", "smart", "auto"],
+		priority: 2,
+		timeout: 30000,
 		enabled: true,
 	},
 	{
@@ -177,6 +192,10 @@ export class MultiModelChatClient {
 			headers.Authorization = `Bearer ${endpoint.apiKey}`;
 		} else if (this.apiKey) {
 			headers.Authorization = `Bearer ${this.apiKey}`;
+		} else if (endpoint.name === "freellmpool") {
+			// Quota-gateway auth: per-user key (auto-generated anonymous key
+			// or a server-minted one the user pasted in settings).
+			headers.Authorization = `Bearer ${getQuotaKey()}`;
 		}
 
 		const controller = new AbortController();

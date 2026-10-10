@@ -28,7 +28,43 @@ export default defineConfig(({ mode }) => {
    * - Sidesteps CORS because the browser calls its own origin.
    */
   const openaiProxy = (req, res, next) => {
-    if (!req.url || (!req.url.startsWith("/api/openai") && !req.url.startsWith("/api/byok"))) return next();
+    if (!req.url || (!req.url.startsWith("/api/openai") && !req.url.startsWith("/api/byok") && !req.url.startsWith("/freellm"))) return next();
+
+    // --- freellmpool quota-gateway passthrough: /freellm/* -> localhost:4005 ---
+    // Local dev only; production routes through Caddy (see Caddyfile.production).
+    if (req.url.startsWith("/freellm")) {
+      const target = process.env.QUOTA_GATEWAY_URL || "http://127.0.0.1:4005";
+      const upstreamPath = req.url.slice("/freellm".length) || "/";
+      const chunks = [];
+      req.on("data", (chunk) => chunks.push(chunk));
+      req.on("end", async () => {
+        try {
+          const isBodyless = req.method === "GET" || req.method === "HEAD";
+          const headers = {};
+          for (const [k, v] of Object.entries(req.headers)) {
+            const lk = k.toLowerCase();
+            if (["host", "connection", "content-length", "origin"].includes(lk)) continue;
+            headers[k] = v;
+          }
+          const upstreamRes = await fetch(`${target}${upstreamPath}`, {
+            method: req.method,
+            headers,
+            body: isBodyless ? undefined : Buffer.concat(chunks),
+          });
+          res.statusCode = upstreamRes.status;
+          for (const h of ["content-type", "x-quota-limit", "x-quota-remaining", "x-quota-reset"]) {
+            const v = upstreamRes.headers.get(h);
+            if (v) res.setHeader(h, v);
+          }
+          res.end(Buffer.from(await upstreamRes.arrayBuffer()));
+        } catch (err) {
+          res.statusCode = 502;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: { message: `quota-gateway unreachable: ${String(err)}` } }));
+        }
+      });
+      return;
+    }
 
     // --- BYOK passthrough: /api/byok/<provider>/* -> provider upstream ---
     // The user's own key arrives in the Authorization header from the browser

@@ -36,6 +36,17 @@ privseai.com, www.privseai.com {
     }
     header @static Cache-Control "public, max-age=31536000, immutable"
 
+    # ── freellmpool quota-gateway (pooled free LLMs, per-user quotas) ──
+    # /freellm/* -> quota-gateway on :4005 -> freellmpool on :8080.
+    # The browser sends its per-user qp_… key as Bearer; Caddy only relays.
+    @freellm {
+        path /freellm/*
+    }
+    handle @freellm {
+        uri strip_prefix /freellm
+        reverse_proxy 127.0.0.1:4005
+    }
+
     # ── BYOK passthrough (user's own key, server never stores it) ──
     # /api/byok/<provider>/* -> provider upstream, Authorization forwarded untouched.
     # The browser calls same-origin so CORS is avoided; Caddy only relays.

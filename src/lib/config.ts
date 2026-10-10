@@ -40,3 +40,15 @@ export function chatApi(path: string) {
 }
 
 export const FREE_DAILY_QUOTA = 20;
+
+// freellmpool quota-gateway base. Default: same-origin `/freellm` (Caddy
+// proxies it to the gateway on the 110 server). Override for local dev, e.g.
+// VITE_QUOTA_GATEWAY_URL=http://127.0.0.1:4005 — must include the path
+// prefix the gateway serves under (no trailing slash).
+export const QUOTA_GATEWAY_URL =
+	(import.meta as { env?: { VITE_QUOTA_GATEWAY_URL?: string } }).env
+		?.VITE_QUOTA_GATEWAY_URL ?? "/freellm";
+
+export function quotaGatewayUrl(): string {
+	return QUOTA_GATEWAY_URL.replace(/\/$/, "");
+}

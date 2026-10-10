@@ -104,12 +104,89 @@ services:
           cpus: "2"
           memory: 2G
 
+  # ============================================
+  # freellmpool — pooled free LLM gateway (MIT)
+  # OpenAI-compatible proxy over 20+ free providers w/ failover
+  # Port: 8080 (localhost only — quota-gateway is the public face)
+  # ============================================
+  freellmpool:
+    image: ghcr.io/0xzr/freellmpool:latest
+    container_name: privseai-freellmpool
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      # Shared token the quota-gateway uses to reach this proxy.
+      - FREELLMPOOL_PROXY_KEY=${FREELLMPOOL_PROXY_KEY:-}
+      # Optional provider keys — keyless routes (Pollinations/OVHcloud/Kilo)
+      # answer without any, add these for more capacity:
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - COHERE_API_KEY=${COHERE_API_KEY:-}
+      - SAMBANOVA_API_KEY=${SAMBANOVA_API_KEY:-}
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+      - SILICONFLOW_API_KEY=${SILICONFLOW_API_KEY:-}
+      - LLM7_API_KEY=${LLM7_API_KEY:-}
+    volumes:
+      - freellmpool-data:/home/freellmpool/.config/freellmpool
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+
+  # ============================================
+  # quota-gateway — per-user daily quotas in front of freellmpool
+  # (server/quota-gateway.py, stdlib-only Python)
+  # Port: 4005 (Caddy routes /freellm/* here)
+  # ============================================
+  quota-gateway:
+    image: python:3.12-alpine
+    container_name: privseai-quota-gateway
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4005:4005"
+    environment:
+      - LISTEN_HOST=0.0.0.0
+      - LISTEN_PORT=4005
+      - FREELLMPOOL_URL=http://freellmpool:8080
+      - FREELLMPOOL_KEY=${FREELLMPOOL_PROXY_KEY:-}
+      - QUOTA_USERS_FILE=/data/users.json
+      - QUOTA_STATE_FILE=/data/quota.json
+      - QUOTA_DEFAULT_REQUESTS=${QUOTA_DEFAULT_REQUESTS:-100}
+      - QUOTA_DEFAULT_TOKENS=${QUOTA_DEFAULT_TOKENS:-200000}
+      - ADMIN_TOKEN=${QUOTA_ADMIN_TOKEN:-}
+      - ALLOWED_ORIGINS=https://privseai.com
+    volumes:
+      - ./server/quota-gateway.py:/app/quota-gateway.py:ro
+      - quota-gateway-data:/data
+    command: ["python", "/app/quota-gateway.py"]
+    depends_on:
+      freellmpool:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+
 volumes:
   fellowship-models:
   fellowship-logs:
   girlfriend-ai-data:
   girlfriend-ai-logs:
   omniroute-cache:
+  freellmpool-data:
+  quota-gateway-data:
 
 networks:
   default:
