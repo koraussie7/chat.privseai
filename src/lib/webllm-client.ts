@@ -31,21 +31,21 @@ export interface ModelInfo {
 
 const AVAILABLE_MODELS: ModelInfo[] = [
 	{
-		id: "Llama-3.2-1B-Instruct-q4f32_1",
+		id: "Llama-3.2-1B-Instruct-q4f32_1-MLC",
 		name: "Llama 3.2 1B (Q4)",
 		size: "~0.8GB",
 		description: "Fast, good quality — best for mobile",
 		recommended: true,
 	},
 	{
-		id: "Phi-3-mini-4k-instruct-q4f32_1",
+		id: "Phi-3-mini-4k-instruct-q4f32_1-MLC",
 		name: "Phi-3-mini (Q4)",
 		size: "~2.5GB",
 		description: "High quality, Microsoft model",
 		recommended: true,
 	},
 	{
-		id: "Qwen2.5-0.5B-Instruct-q4f32_1",
+		id: "Qwen2.5-0.5B-Instruct-q4f32_1-MLC",
 		name: "Qwen2.5-0.5B (Q4)",
 		size: "~0.4GB",
 		description: "Smallest, fastest — for low-end devices",
@@ -60,13 +60,29 @@ const AVAILABLE_MODELS: ModelInfo[] = [
 	},
 ];
 
+type MLCChunk = { choices: Array<{ delta?: { content?: string } }> };
+type MLCCompletion = { choices: Array<{ message?: { content?: string } }> };
+interface MLCEngineLike {
+	chat: {
+		completions: {
+			create: (req: {
+				messages: Array<{ role: string; content: string }>;
+				max_tokens?: number;
+				temperature?: number;
+				top_p?: number;
+				stream?: boolean;
+			}) => Promise<MLCCompletion | AsyncIterable<MLCChunk>>;
+		};
+	};
+	unload?: () => Promise<void>;
+}
 export class WebLLMClient {
 	private modelId: string;
-	private engine: unknown = null;
+	private engine: MLCEngineLike | null = null;
 	private isLoading = false;
 	private loadProgress = 0;
 
-	constructor(modelId = "Llama-3.2-1B-Instruct-q4f32_1") {
+	constructor(modelId = "Qwen2.5-0.5B-Instruct-q4f32_1-MLC") {
 		this.modelId = modelId;
 	}
 
@@ -101,19 +117,20 @@ export class WebLLMClient {
 		this.loadProgress = 0;
 
 		try {
-			// Dynamic import to avoid SSR issues. The specifier is held in a
-			// variable and marked @vite-ignore so Vite does NOT statically
-			// resolve/bundle it (the optional @mlc-ai/web-llm package may not be
-			// installed; inlining it would break the app on load). If it is
-			// missing at runtime, on-device WebLLM is skipped and the caller falls
-			// back to the remote OpenAI proxy. To enable it:
-			//   npm i @mlc-ai/web-llm
-			const specifier = "@mlc-ai/web-llm";
-			const mod = await import(/* @vite-ignore */ specifier);
+			// Bundled dynamic import so Vite emits @mlc-ai/web-llm as its own chunk.
+			const mod = await import("@mlc-ai/web-llm");
 
-			this.engine = await mod.CreateMLCEngine(this.modelId, {
+			const { CreateMLCEngine } = mod as unknown as {
+				CreateMLCEngine: (modelId: string, config: { initProgressCallback: (report: { progress: number; text: string }) => void }) => Promise<MLCEngineLike>;
+			};
+			this.engine = await CreateMLCEngine(this.modelId, {
 				initProgressCallback: (report: { progress: number; text: string }) => {
 					this.loadProgress = Math.round(report.progress * 100);
+					onProgress?.({
+						progress: report.progress,
+						text: report.text,
+						status: report.progress >= 1 ? "ready" : "loading",
+					});
 					console.log(
 						`[WebLLM] Loading ${this.modelId}: ${report.text} (${this.loadProgress}%)`,
 					);
@@ -158,7 +175,6 @@ export class WebLLMClient {
 		const { maxTokens = 512, temperature = 0.7, topP = 0.9, onToken } = options;
 
 		try {
-			// @ts-expect-error - WebLLM engine type
 			const completion = await this.engine.chat.completions.create({
 				messages: messages.map((m) => ({
 					role: m.role,
@@ -173,9 +189,10 @@ export class WebLLMClient {
 			let fullText = "";
 			let tokensGenerated = 0;
 
-			if (onToken && completion[Symbol.asyncIterator]) {
+			const stream = completion as AsyncIterable<MLCChunk>;
+			if (onToken && typeof stream[Symbol.asyncIterator] === "function") {
 				// Streaming response
-				for await (const chunk of completion) {
+				for await (const chunk of stream) {
 					const token = chunk.choices[0]?.delta?.content || "";
 					if (token) {
 						fullText += token;
@@ -185,7 +202,7 @@ export class WebLLMClient {
 				}
 			} else {
 				// Non-streaming response
-				fullText = completion.choices[0]?.message?.content || "";
+				fullText = (completion as MLCCompletion).choices[0]?.message?.content || "";
 				tokensGenerated = this.estimateTokens(fullText);
 			}
 
