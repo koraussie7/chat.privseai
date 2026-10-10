@@ -73,6 +73,9 @@ class H(BaseHTTPRequestHandler):
                 {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
             ]
             model = VISION_MODEL
+        elif body.get("task") == "character-card":
+            content = prompt  # prompt already carries full JSON card instructions
+            model = VISION_MODEL
         else:
             instruction = (
                 "Expand the user's idea into one concise, detailed image-generation prompt. "
@@ -84,7 +87,7 @@ class H(BaseHTTPRequestHandler):
         payload = json.dumps({
             "model": model,
             "messages": [{"role": "user", "content": content}],
-            "max_tokens": 600,
+            "max_tokens": 1500,
         }).encode()
         req = urllib.request.Request(UPSTREAM, data=payload, headers={
             "Content-Type": "application/json",
