@@ -57,8 +57,12 @@ async function tx<T>(
 		const transaction = db.transaction(STORE, mode);
 		const store = transaction.objectStore(STORE);
 		const req = fn(store);
-		req.onsuccess = () => resolve(req.result);
+		let result: T;
+		req.onsuccess = () => { result = req.result; };
 		req.onerror = () => reject(req.error);
+		transaction.oncomplete = () => resolve(result);
+		transaction.onabort = () => reject(transaction.error ?? new Error("IndexedDB transaction aborted"));
+		transaction.onerror = () => reject(transaction.error ?? new Error("IndexedDB transaction failed"));
 	});
 }
 
@@ -70,15 +74,9 @@ export async function cacheImage(
 	placeholderUrl: string,
 	payload: Omit<CachedImage, "pkgId" | "placeholderUrl">,
 ): Promise<void> {
-	await tx("readwrite", (store) => {
-		store.put({
-			key: key(pkgId, placeholderUrl),
-			pkgId,
-			placeholderUrl,
-			...payload,
-		});
-		return {} as IDBRequest<undefined>;
-	});
+	await tx("readwrite", (store) =>
+		store.put({ key: key(pkgId, placeholderUrl), pkgId, placeholderUrl, ...payload }),
+	);
 }
 
 /** Look up a cached image; returns null if no cache entry exists. */
@@ -108,8 +106,31 @@ export async function evictCachedImage(
 	pkgId: string,
 	placeholderUrl: string,
 ): Promise<void> {
-	await tx("readwrite", (store) => {
-		store.delete(key(pkgId, placeholderUrl));
-		return {} as IDBRequest<undefined>;
+	await tx("readwrite", (store) => store.delete(key(pkgId, placeholderUrl)));
+}
+
+
+/** Stable cache namespace for files uploaded from /collection. */
+export function uploadedImageKey(id: string): string {
+	return `upload:${id}`;
+}
+
+/** Persist a user-uploaded image blob across reloads. */
+export async function cacheUploadedImage(input: { id: string; title: string; blob: Blob; generatedAt: number }): Promise<void> {
+	const placeholderUrl = uploadedImageKey(input.id);
+	await cacheImage("__uploads__", placeholderUrl, {
+		url: placeholderUrl, title: input.title, prompt: "", model: "uploaded",
+		generatedAt: input.generatedAt, blob: input.blob,
 	});
+}
+
+/** Return all upload records in creation order. */
+export async function getCachedUploads(): Promise<CachedImage[]> {
+	const all = await getAllCachedImages();
+	return all.filter((image) => image.pkgId === "__uploads__" && image.placeholderUrl.startsWith("upload:")).sort((a, b) => a.generatedAt - b.generatedAt);
+}
+
+/** Remove an uploaded image from persistent storage. */
+export async function deleteCachedUpload(id: string): Promise<void> {
+	await evictCachedImage("__uploads__", uploadedImageKey(id));
 }

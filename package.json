@@ -1,7 +1,7 @@
 {
   "name": "privseai-trystero",
   "version": "0.1.0",
-  "description": "P2P AI inference UI for privseai.com \u2014 Trystero WebRTC signaling + muhanai Colibri WASM inference",
+  "description": "P2P AI inference UI for privseai.com — Trystero WebRTC signaling + muhanai Colibri WASM inference",
   "type": "module",
   "private": true,
   "scripts": {
@@ -37,6 +37,7 @@
     "typescript": "^5.6.0",
     "vite": "^5.4.0",
     "vite-plugin-svgr": "^4.4.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "fake-indexeddb": "^6.2.4"
   }
 }

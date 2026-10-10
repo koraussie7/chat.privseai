@@ -2,7 +2,8 @@ import { CharacterDetailView } from "@/components/CharacterDetailView";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
 import { useAIHub } from "@/hooks/useAIHub";
 import { ageVerifier } from "@/lib/age-verification";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
+import { cacheUploadedImage, deleteCachedUpload, getCachedUploads } from "@/lib/image-cache";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -11,6 +12,7 @@ interface Props {
 }
 
 type Tab = "characters" | "images" | "videos" | "styles";
+type UserUpload = { id: string; url: string; title: string; generatedAt: number };
 
 const isCustomCompanion = (companion: CandyCompanion) =>
 	!CANDY_PRESETS.some((preset) => preset.id === companion.id);
@@ -26,42 +28,65 @@ export function CandyCollection({ companions, onEdit, onDelete }: Props) {
     null,
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [userUploads, setUserUploads] = useState<UserUpload[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const uploadObjectUrls = useRef(new Set<string>());
+  useEffect(() => () => {
+    for (const url of uploadObjectUrls.current) URL.revokeObjectURL(url);
+    uploadObjectUrls.current.clear();
+  }, []);
+  useEffect(() => {
+    let cancelled = false;
+    const objectUrls: string[] = [];
+    void getCachedUploads().then((items) => {
+      if (cancelled) return;
+      const restored = items.map((item) => {
+        const url = URL.createObjectURL(item.blob);
+        objectUrls.push(url);
+        return { id: item.placeholderUrl.replace(/^upload:/, ""), url, title: item.title, generatedAt: item.generatedAt };
+      });
+      setUserUploads(restored);
+    }).catch((error) => {
+      console.error("Failed to restore uploaded images", error);
+      if (!cancelled) setUploadError("Saved uploads could not be restored from this browser.");
+    });
+    return () => { cancelled = true; for (const url of objectUrls) URL.revokeObjectURL(url); };
+  }, []);
   const selectedCharacter = useMemo(
     () => companions.find((c) => c.id === selectedCharacterId) ?? null,
     [companions, selectedCharacterId],
   );
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    const pkgs = aiHub.getAllPackages();
-    if (pkgs.length === 0) {
-      setUploadError("No packages available. Create one in AI Hub first.");
-      return;
-    }
-
-    const pkg = pkgs[0];
-
-    for (const file of Array.from(files)) {
-      if (!file.type.startsWith("image/")) continue;
-
-      const url = URL.createObjectURL(file);
-      const image = {
-        id: `upload-${Date.now()}-${file.name}`,
-        url,
-        title: file.name.replace(/\.[^.]+$/, ""),
-        description: "",
-        prompt: "",
-        model: "uploaded",
-        generatedAt: Date.now(),
-      };
-
-      aiHub.addImageAsset(pkg.id, image);
-    }
-
-    setUploadError(null);
+    const files = Array.from(e.target.files ?? []);
     e.target.value = "";
+    if (!files.length) return;
+    setUploading(true); setUploadError(null);
+    const added: UserUpload[] = [];
+    try {
+      for (const file of files) {
+        if (!file.type.startsWith("image/")) continue;
+        if (file.size > 20 * 1024 * 1024) throw new Error(`${file.name}: image exceeds the 20 MB limit.`);
+        const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const generatedAt = Date.now();
+        await cacheUploadedImage({ id, title: file.name.replace(/\.[^.]+$/, ""), blob: file, generatedAt });
+        const url = URL.createObjectURL(file); uploadObjectUrls.current.add(url);
+        added.push({ id, url, title: file.name.replace(/\.[^.]+$/, ""), generatedAt });
+      }
+      setUserUploads((current) => [...added, ...current]);
+      setUploadError(added.length ? null : "Choose one or more image files to upload.");
+    } catch (error) {
+      for (const item of added) { URL.revokeObjectURL(item.url); uploadObjectUrls.current.delete(item.url); }
+      const message = error instanceof Error ? error.message : "Image upload could not be saved.";
+      setUploadError(`${message} Check browser storage availability and try again.`);
+    } finally { setUploading(false); }
+  };
+  const handleDeleteUpload = async (upload: UserUpload) => {
+    try {
+      await deleteCachedUpload(upload.id);
+      setUserUploads((current) => current.filter((item) => item.id !== upload.id));
+      URL.revokeObjectURL(upload.url); uploadObjectUrls.current.delete(upload.url);
+    } catch { setUploadError("Could not delete this saved upload from browser storage."); }
   };
 
 const allPhotos = useMemo(
@@ -135,7 +160,7 @@ const allPhotos = useMemo(
       id: "images",
       label: "Images",
       icon: "🖼",
-      count: allPhotos.length + generatedImages.length + (isAgeVerified ? nsfwPhotos.length : 0),
+      count: allPhotos.length + generatedImages.length + userUploads.length + (isAgeVerified ? nsfwPhotos.length : 0),
     },
     {
       id: "videos",
@@ -243,8 +268,8 @@ const allPhotos = useMemo(
             </div>
           )}
           <div className="flex gap-2">
-            <label className="px-4 py-2 rounded-xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-semibold text-sm cursor-pointer flex items-center gap-2 transition-transform">
-              📁 Upload
+            <label className={`px-4 py-2 rounded-xl bg-candy-gradient hover:bg-candy-gradient-hover text-white font-semibold text-sm cursor-pointer flex items-center gap-2 transition-transform ${uploading ? "pointer-events-none opacity-60" : ""}`}>
+              {uploading ? "Saving…" : "📁 Upload"}
               <input
                 type="file"
                 accept="image/*"
@@ -338,6 +363,15 @@ const allPhotos = useMemo(
                     {photo.companionName}
                   </div>
                 </div>
+              </div>
+            ))}
+            {userUploads.map((upload) => (
+              <div key={`upload-${upload.id}`} className="mb-4 break-inside-[200px] rounded-2xl overflow-hidden border-white/10 group relative">
+                <button type="button" onClick={() => { setSelectedImage(upload.url); setSelectedImageTitle(upload.title); }} className="block w-full cursor-zoom-in">
+                  <img src={upload.url} alt={upload.title} className="w-full rounded-2xl" />
+                  <div className="p-2 text-left text-xs font-bold text-white truncate">{upload.title}</div>
+                </button>
+                <button type="button" onClick={() => void handleDeleteUpload(upload)} aria-label={`Delete ${upload.title}`} className="absolute top-2 right-2 rounded-full bg-black/70 px-2 py-1 text-xs text-white opacity-0 group-hover:opacity-100">Delete</button>
               </div>
             ))}
             {/* Generated images */}
