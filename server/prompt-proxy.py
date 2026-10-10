@@ -4,12 +4,16 @@ import json
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-MASTER_KEY = None
-for line in open("/opt/privseai/prompt-proxy/.masterkey"):
-    if line.strip():
-        MASTER_KEY = line.strip().split("=", 1)[1]
+OPENROUTER_KEY = None
+with open("/opt/privseai/prompt-proxy/.openrouterkey") as f:
+    for line in f:
+        if line.strip():
+            value = line.strip()
+            OPENROUTER_KEY = value.split("=", 1)[1] if "=" in value else value
 ALLOWED_ORIGIN = "https://privseai.com"
-UPSTREAM = "http://127.0.0.1:4003/v1/chat/completions"
+UPSTREAM = "https://openrouter.ai/api/v1/chat/completions"
+TEXT_MODEL = "groq-gpt-oss-20b"  # unused; vision model handles both via OpenRouter
+VISION_MODEL = "google/gemini-2.5-flash"
 MAX_BYTES = 6 * 1024 * 1024
 
 
@@ -49,21 +53,42 @@ class H(BaseHTTPRequestHandler):
         image = body.get("image")
         if mode == "enhance-image" and not prompt:
             return self._err(400, "missing prompt")
-        if image:
-            return self._err(501, "image analysis not enabled yet")
-        instruction = (
-            "Expand the user's idea into one concise, detailed image-generation prompt. "
-            "Specify subject, scene, composition, style, lighting, palette, mood, texture, perspective. "
-            "Return only the final prompt.\n\nUser idea: " + prompt
-        )
+        if mode == "image":
+            if not isinstance(image, dict):
+                return self._err(400, "image analysis requires an image payload")
+            mime = str(image.get("mime_type", ""))
+            b64 = str(image.get("data", ""))
+            if mime not in ("image/jpeg", "image/png", "image/webp") or not b64:
+                return self._err(400, "image must be base64 JPEG/PNG/WebP")
+            if len(b64) > 5_600_000:
+                return self._err(413, "image too large after base64 encoding")
+            content = [
+                {"type": "text", "text": (
+                    "Analyze the provided image and write one detailed, reusable "
+                    "image-generation prompt that could create a visually similar image. "
+                    "Describe only visible content: subject, scene, composition, style, "
+                    "lighting, palette, mood, texture, perspective. Do not identify real "
+                    "people or infer sensitive personal attributes. Return only the final prompt."
+                )},
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+            ]
+            model = VISION_MODEL
+        else:
+            instruction = (
+                "Expand the user's idea into one concise, detailed image-generation prompt. "
+                "Specify subject, scene, composition, style, lighting, palette, mood, texture, perspective. "
+                "Return only the final prompt.\n\nUser idea: " + prompt
+            )
+            content = instruction
+            model = VISION_MODEL
         payload = json.dumps({
-            "model": "groq-gpt-oss-20b",
-            "messages": [{"role": "user", "content": instruction}],
-            "max_tokens": 500,
+            "model": model,
+            "messages": [{"role": "user", "content": content}],
+            "max_tokens": 600,
         }).encode()
         req = urllib.request.Request(UPSTREAM, data=payload, headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + MASTER_KEY,
+            "Authorization": "Bearer " + OPENROUTER_KEY,
         })
         try:
             with urllib.request.urlopen(req, timeout=90) as r:
