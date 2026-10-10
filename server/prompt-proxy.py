@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Minimal prompt/analyze proxy: browser -> here -> LiteLLM (server-side key)."""
-import json
+import json, os
 import urllib.request
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -15,6 +15,26 @@ UPSTREAM = "https://openrouter.ai/api/v1/chat/completions"
 TEXT_MODEL = "groq-gpt-oss-20b"  # unused; vision model handles both via OpenRouter
 VISION_MODEL = "google/gemini-2.5-flash"
 MAX_BYTES = 6 * 1024 * 1024
+GUEST_LIMIT = 3  # messages per IP per session
+GUEST_COUNTS = {}  # ip -> count
+
+
+def _run_freellm(messages):
+    """Call the freellmpool keyless pool CLI. Returns reply text or None."""
+    import subprocess
+    system_parts = [m["content"] for m in messages if m["role"] == "system"]
+    turns = [f"{m['role']}: {m['content']}" for m in messages if m["role"] != "system"]
+    prompt = "\n".join(turns)
+    if system_parts:
+        prompt = "\n".join(system_parts) + "\n\nStay fully in character.\n\n" + prompt
+    cmd = ["uvx", "freellmpool", "ask", "--max-tokens", "300", "--routing", "fast"]
+    try:
+        result = subprocess.run(cmd, input=prompt, capture_output=True, text=True, timeout=120)
+        if result.returncode != 0:
+            return None
+        return result.stdout.strip()[:2000] or None
+    except Exception:
+        return None
 
 
 class H(BaseHTTPRequestHandler):
@@ -48,7 +68,32 @@ class H(BaseHTTPRequestHandler):
             self._cors()
             self.end_headers()
             return
-        mode = body.get("mode", "enhance-image")
+        if body.get("task") == "guest-chat":
+            ip = self.client_address[0]
+            if GUEST_COUNTS.get(ip, 0) >= GUEST_LIMIT:
+                return self._err(429, "guest trial limit reached (3 messages). Sign up for more.")
+            # messages: [{role, content}, ...] from client (persona context included)
+            msgs = body.get("messages")
+            if not isinstance(msgs, list) or not msgs or len(msgs) > 6:
+                return self._err(400, "messages must be 1-6 items")
+            sanitized = []
+            for m in msgs:
+                role = m.get("role")
+                text = str(m.get("content", ""))[:1200]
+                if role not in ("user", "assistant", "system") or not text:
+                    return self._err(400, "invalid message")
+                sanitized.append({"role": role, "content": text})
+            GUEST_COUNTS[ip] = GUEST_COUNTS.get(ip, 0) + 1
+            result = _run_freellm(sanitized)
+            if result is None:
+                return self._err(502, "free pool unavailable, try again")
+            out = json.dumps({"reply": result, "remaining": GUEST_LIMIT - GUEST_COUNTS[ip]}).encode()
+            self.send_response(200)
+            self._cors()
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(out)
+            return
         prompt = str(body.get("prompt", "")).strip()[:8000]
         image = body.get("image")
         if mode == "enhance-image" and not prompt:
