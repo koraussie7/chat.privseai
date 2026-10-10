@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StockImageSearch } from "@/components/StockImageSearch";
 import { CompanionGenerator } from "@/components/CompanionGenerator";
+import { ModelPresetPanel } from "@/components/ModelPresetPanel";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -124,6 +125,7 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 
 			<StockImageSearch />
 			<CompanionGenerator />
+			<ModelPresetPanel />
 
 			{/* Filter Tabs & Search Bar */}
 			<div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mb-6">

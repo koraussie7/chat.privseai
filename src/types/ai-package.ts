@@ -111,6 +111,14 @@ export interface AIPackageMetadata {
 	forks: number;
 	language: string;
 	imageModel?: string;
+	/** Recommended local model preset (P2P-shareable recipe, not the model file). */
+	recommendedModel?: {
+		presetId: string;
+		name: string;
+		hfRepo: string;
+		quantization: string;
+		runtime: "ollama" | "llamacpp" | "lmstudio" | "webllm";
+	};
 }
 
 export interface AIPackageConfig {
