@@ -6,10 +6,9 @@
  */
 
 import type { CharacterCard, CharacterCardData } from '@/types/character';
-import type { AIPackage, MCPToolRef } from '@/types/ai-package';
+import type { AIPackage } from '@/types/ai-package';
 import type { UnifiedCompanion, ModelReference, RelationshipProgress, GalleryItem, MemoryEntry } from '@/types/unified';
 import { AIHub } from '@/lib/ai-hub';
-import { CharacterCardParser } from '@/lib/character-card';
 
 /**
  * CharacterCardData를 UnifiedCompanion으로 변환
@@ -99,22 +98,17 @@ export function unifiedCompanionToCharacterCard(companion: UnifiedCompanion): Ch
     spec: 'chara_card_v2',
     data: {
       name: companion.name,
-      description: companion.systemPrompt,
+      description: (companion.systemPrompt || companion.tagline || companion.name) as string,
       personality: companion.personality.join('\n'),
-      first_mes: companion.greeting,
+      scenario: '',
+      first_mes: companion.greeting ?? '',
       mes_example: '',
-      creator: companion.creator,
+      system_prompt: companion.systemPrompt ?? '',
+      post_scriptment: '',
+      creator: companion.creator || 'Unknown',
       character_version: '1.0',
-      avatar: companion.avatarUrl,
-      banner: companion.bannerUrl,
+      src: companion.avatarUrl ?? '',
       tags: companion.tags,
-      nsfw: companion.capabilities.nsfw,
-      gallery: companion.gallery.filter(g => g.type === 'image').map(g => g.url),
-      voice: companion.voiceId,
-      age: companion.age?.toString(),
-      gender: companion.gender,
-      source: '',
-      group: '',
       creator_notes: '',
       extensions: {
         stage: companion.relationship.stage,
@@ -148,7 +142,7 @@ export function aiPackageToUnifiedCompanion(pkg: AIPackage): UnifiedCompanion {
       url,
       title: `${pkg.metadata.name} Gallery ${idx + 1}`,
       isUnlocked: true,
-      isNSFW: pkg.metadata.category === 'nsfw' || pkg.config.nsfwEnabled,
+      isNSFW: Boolean(pkg.config.nsfwEnabled),
       createdAt: pkg.metadata.createdAt,
     })),
     ...images.map(img => ({
@@ -259,12 +253,11 @@ export function unifiedCompanionToAIPackage(
     baseModel: companion.modelRef.type === 'p2p' 
       ? (companion.modelRef.modelName || 'Qwen3-0.6B')
       : 'Qwen3-0.6B',
-    tags: companion.tags,
-    category: companion.category,
+    tags: companion.tags ?? [],
+    category: (['realistic','anime','cyber','fantasy'].includes(companion.category ?? '') ? companion.category : 'other') as 'other'|'realistic'|'anime'|'cyber'|'fantasy',
     media: {
       avatarUrl: companion.avatarUrl,
       bannerUrl: companion.bannerUrl,
-      gallery: companion.gallery.filter(g => g.type === 'image').map(g => g.url),
       voiceId: companion.voiceId,
     },
     config: {
@@ -285,7 +278,7 @@ export function unifiedCompanionToAIPackage(
   }
 
   // 갤러리 아이템 동기화
-  pkg.galleryItems = companion.gallery.map(g => ({
+  pkg.galleryItems = companion.gallery.map((g): import('@/types/ai-package').GalleryItem => ({
     id: g.id,
     type: g.type,
     url: g.url,
@@ -297,7 +290,7 @@ export function unifiedCompanionToAIPackage(
     prompt: g.prompt,
     duration: g.metadata?.width ? undefined : undefined,
     isNSFW: g.isNSFW,
-    metadata: g.metadata,
+    metadata: g.metadata as unknown as Record<string, unknown> | undefined,
   }));
 
   return pkg;
@@ -491,7 +484,7 @@ export function determineOptimalModelRef(
   }
 
   // 멀티모달 필요 시 클라우드 우선
-  if (companion.capabilities?.multimodal || companion.capabilities?.vision) {
+  if (companion.capabilities?.multimodal) {
     if (availableModels.cloud.length > 0) {
       return availableModels.cloud[0];
     }

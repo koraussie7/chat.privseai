@@ -24,6 +24,7 @@ export interface CloudProviderConfig {
   organization?: string;      // OpenAI organization ID
 }
 
+export const PROVIDER_CONFIGS: Record<string, { provider: string; baseUrl: string }> = {
   openai: { provider: 'openai', baseUrl: 'https://api.openai.com/v1' },
   anthropic: { provider: 'anthropic', baseUrl: 'https://api.anthropic.com/v1' },
   google: { provider: 'google', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
@@ -174,7 +175,6 @@ export class CloudInferenceProvider implements InferenceProvider {
     }
 
     const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
 
     if (!reader) {
       yield { type: 'error', error: 'No response stream' };
@@ -186,7 +186,7 @@ export class CloudInferenceProvider implements InferenceProvider {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value, { stream: true });
+        const chunk = new TextDecoder().decode(value, { stream: true });
         const lines = chunk.split('\n');
         
         for (const line of lines) {
@@ -265,7 +265,6 @@ export class CloudInferenceProvider implements InferenceProvider {
     }
 
     const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
 
     if (!reader) {
       yield { type: 'error', error: 'No response stream' };
@@ -280,7 +279,7 @@ export class CloudInferenceProvider implements InferenceProvider {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value, { stream: true });
+        const chunk = new TextDecoder().decode(value, { stream: true });
         const lines = chunk.split('\n');
         
         for (const line of lines) {
@@ -371,7 +370,6 @@ export class CloudInferenceProvider implements InferenceProvider {
 
     // Google 스트리밍 파싱 (간소화)
     const reader = response.body?.getReader();
-    const decoder = new TextDecoder();
 
     if (!reader) {
       yield { type: 'error', error: 'No response stream' };

@@ -240,6 +240,7 @@ class InferenceWorker {
     topP: number;
     tools?: any[];
   }): AsyncGenerator<InferenceChunk> {
+    void this.modelPath; // resolved locally by the worker implementation
     // TODO: 실제 워커 구현 시 Colibri WASM 또는 llama.cpp WASM 연동
     // 현재는 모의 구현
     yield { type: 'content', content: '[P2P 추론 모의 응답] ' };

@@ -65,17 +65,18 @@ export class LocalInferenceProvider implements InferenceProvider {
   }
 
   private async initWebLLM(): Promise<void> {
-    const { createWebLLMEngine } = await import('@mlc-ai/web-llm');
+    const mod = (await import('@mlc-ai/web-llm')).default;
 
     const modelId = this.config.webllm?.modelId || 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC';
 
-    this.engine = await createWebLLMEngine({
-      initProgressCallback: (progress: any) => {
+    const engine = await mod.createWebLLMEngine({
+      modelId,
+      initProgressCallback: (progress: { text: string; progress: number }) => {
         console.log('[WebLLM] Init:', progress.text, Math.round(progress.progress * 100) + '%');
       },
-    });
+    } as never);
 
-    await this.engine.reload(modelId);
+    this.engine = engine as unknown as NonNullable<typeof this.engine>;
   }
 
   private async initLlamaCpp(): Promise<void> {

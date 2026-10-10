@@ -6,14 +6,10 @@
  */
 
 import { useEffect, useState, useCallback, createContext, useContext, ReactNode } from 'react';
-import { AIHub } from '@/lib/ai-hub';
 import { useAIHub } from '@/hooks/useAIHub';
 import { useTrystero } from '@/hooks/useTrysteroP2P';
-import type { UnifiedCompanion, ModelReference, InferenceRequest, InferenceChunk, ProviderType } from '@/types/unified';
+import type { UnifiedCompanion, InferenceRequest, InferenceChunk, ProviderType } from '@/types/unified';
 import { ProviderManager } from '@/lib/providers';
-import { P2PInferenceProvider } from '@/lib/providers/P2PInferenceProvider';
-import { LocalInferenceProvider } from '@/lib/providers/LocalInferenceProvider';
-import { CloudInferenceProvider } from '@/lib/providers/CloudInferenceProvider';
 import { unifiedCompanionToAIPackage, aiPackageToUnifiedCompanion } from '@/lib/converters';
 
 // ============================================================================
@@ -86,7 +82,7 @@ export function IntegrationProvider({
       manager.initLocal(localBackend).catch(console.error);
     }
 
-    return () => manager.dispose();
+    return () => { void manager.dispose(); };
   }, [aiHub, network, cloudConfig, autoInitLocal, localBackend]);
 
   // 추론 실행
@@ -208,7 +204,10 @@ export function useUnifiedChat(companion: UnifiedCompanion) {
 // ============================================================================
 
 export function useModelSelector() {
-  const { providerManager, activeProvider, availableProviders, healthStatus, checkHealth } = useIntegration();
+  const { providerManager, activeProvider } = useIntegration();
+  const availableProviders = providerManager?.getAvailableProviders() ?? [];
+  const healthStatus: Record<string, { latencyMs?: number }> = {};
+  const checkHealth = () => providerManager?.checkAllHealth();
 
   const providers = availableProviders.map(p => ({
     type: p.type,
@@ -308,7 +307,7 @@ export function unifiedToCandyCompanion(companion: UnifiedCompanion): CandyCompa
     name: companion.name,
     tagline: companion.tagline || '',
     age: companion.age || 22,
-    category: companion.category || 'realistic',
+    category: (companion.category === 'anime' ? 'anime' : 'realistic'),
     gender: 'female',
     isOnline: true,
     hasVoice: !!companion.voiceId,

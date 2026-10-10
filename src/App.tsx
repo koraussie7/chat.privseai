@@ -13,6 +13,7 @@ import { CANDY_PRESETS, loadAllCandyPresets, type CandyCompanion } from "@/data/
 import { useAuth } from "@/hooks/useAuth";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
 import { useI18n } from "@/lib/i18n";
+import { IntegrationProvider } from "@/lib/integration/PrivseAIAdapter";
 import { AIHubPage } from "@/pages/AIHubPage";
 import { APIKeysPage } from "@/pages/APIKeysPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
@@ -140,6 +141,7 @@ export function App() {
 
 	return (
 		<Router>
+			<IntegrationProvider autoInitLocal={false}>
 			<div className="flex h-screen w-screen overflow-hidden bg-[#090a0f] text-gray-100 font-sans selection:bg-pink-500 selection:text-white">
 				{/* Candy Styled Desktop Sidebar */}
 				<CandySidebar
@@ -361,6 +363,7 @@ export function App() {
 					onUpdate={handleUpdateCompanion}
 				/>
 			</div>
+			</IntegrationProvider>
 		</Router>
 	);
 }

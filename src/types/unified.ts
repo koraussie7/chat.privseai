@@ -109,6 +109,9 @@ export interface ImageMetadata {
 
 export type ModelSourceType = 'p2p' | 'local' | 'cloud';
 
+/** Inference provider backend (alias of ModelSourceType). */
+export type ProviderType = ModelSourceType;
+
 export interface ModelReference {
   type: ModelSourceType;
   cid?: string;
