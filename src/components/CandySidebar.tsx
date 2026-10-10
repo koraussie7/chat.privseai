@@ -108,6 +108,17 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 				</button>
 
 				<CandyNavItem to="/hub" icon="🧠" label="AI Hub" shortLabel="Hub" collapsed={collapsed} />
+				<a
+					href="https://browserytools.com"
+					target="_blank"
+					rel="noopener noreferrer"
+					title={collapsed ? "Browser Tools" : undefined}
+					className={`flex items-center gap-3.5 px-3.5 py-3 rounded-2xl text-sm font-medium text-gray-400 hover:text-gray-200 hover:bg-white/[0.04] transition-all duration-200 ${collapsed ? "justify-center" : ""}`}
+				>
+					<span className="text-lg shrink-0">🧰</span>
+					{!collapsed && <span className="truncate flex-1">Browser Tools</span>}
+					{!collapsed && <span className="text-[10px] text-gray-500">↗</span>}
+				</a>
 
 				<CandyNavItem
 					to="/pricing"
