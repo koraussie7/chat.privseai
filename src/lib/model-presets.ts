@@ -39,7 +39,7 @@ export function buildRunCommand(preset: ModelPreset): string {
 		case "lmstudio":
 			return `# Open LM Studio → Search "${preset.hfRepo}" → load ${preset.quantization} → Start Server`;
 		case "webllm":
-			return `# WebLLM requires MLC format, not GGUF. Use ollama/llamacpp for this GGUF preset.`;
+			return `# Browser mode: loaded automatically via WebLLM (MLC weights). Open chat → model picker → select this model. Requires WebGPU.`;
 	}
 }
 
@@ -112,6 +112,19 @@ export const SEED_PRESETS: ModelPreset[] = [
 		isNSFW: true,
 		description: "Roleplay-tuned 9B model for uncensored companion chat. Runs locally on your device.",
 		tags: ["roleplay", "nsfw", "local"],
+		createdAt: Date.now(),
+	},
+	{
+		id: "qwen35-9b-rp-webllm",
+		name: "Qwen3.5 9B RolePlay (in-browser)",
+		hfRepo: "mlc-ai/Qwen3.5-9B-q4f16_1-MLC",
+		quantization: "q4f16_1",
+		runtime: "webllm",
+		contextLength: 32768,
+		minRamGb: 8,
+		isNSFW: true,
+		description: "Same RP model compiled for the browser (MLC/WebGPU). No install — weights stream into your browser. Desktop GPU required.",
+		tags: ["roleplay", "nsfw", "webgpu"],
 		createdAt: Date.now(),
 	},
 	{

@@ -106,9 +106,23 @@ export function ModelPresetPanel() {
 
 							{openPreset?.id === preset.id && (
 								<div className="mt-3 space-y-2">
-									<div className="rounded-xl bg-black/40 p-2.5 font-mono text-[10px] text-emerald-300 break-all">
-										{buildRunCommand(preset)}
-									</div>
+									{preset.runtime === "webllm" ? (
+										<button
+											type="button"
+											onClick={() => {
+												setNotice(
+													'In-browser mode uses the chat\'s WebLLM picker. Open a companion chat and pick "' + preset.name + '" from the model list.',
+												);
+											}}
+											className="w-full rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white"
+										>
+											Use in browser (WebGPU)
+										</button>
+									) : (
+										<div className="rounded-xl bg-black/40 p-2.5 font-mono text-[10px] text-emerald-300 break-all">
+											{buildRunCommand(preset)}
+										</div>
+									)}
 									<p className="text-[10px] text-gray-500">
 										Then connect at <span className="font-mono">{defaultEndpoint(preset)}</span> via the Nexus badge in chat.
 									</p>

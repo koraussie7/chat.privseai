@@ -58,6 +58,20 @@ const AVAILABLE_MODELS: ModelInfo[] = [
 		description: "Premium quality, requires high-end GPU",
 		recommended: false,
 	},
+	{
+		id: "Qwen3.5-9B-q4f16_1-MLC",
+		name: "Qwen3.5 9B RolePlay (Q4, WebGPU)",
+		size: "~6.3GB VRAM",
+		description: "RP-tuned 9B in-browser via WebGPU. Desktop GPU strongly recommended.",
+		recommended: false,
+	},
+	{
+		id: "Qwen3.5-9B-q4f32_1-MLC",
+		name: "Qwen3.5 9B RolePlay (Q4f32, WebGPU)",
+		size: "~7.4GB VRAM",
+		description: "Higher-fidelity variant of the 9B RP model. High-end GPUs only.",
+		recommended: false,
+	},
 ];
 
 type MLCChunk = { choices: Array<{ delta?: { content?: string } }> };

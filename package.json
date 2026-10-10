@@ -23,7 +23,10 @@
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-router-dom": "^6.28.0",
-    "trystero": "^0.26.0"
+    "trystero": "^0.26.0",
+    "y-indexeddb": "^9.0.12",
+    "y-webrtc": "^10.3.0",
+    "yjs": "^13.6.33"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

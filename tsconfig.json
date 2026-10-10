@@ -45,5 +45,14 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/hooks/unified",
+    "src/hooks/useUnifiedInference.ts",
+    "src/lib/converters",
+    "src/lib/converters/CharacterCardConverter.ts",
+    "src/lib/integration",
+    "src/lib/providers",
+    "src/lib/sync/P2PMemorySync.ts"
   ]
 }
