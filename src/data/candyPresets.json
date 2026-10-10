@@ -9998,7 +9998,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/yuna-01.svg",
+    "avatarUrl": "/images/companions/yuna-portrait.jpg",
     "bio": "응급실 야간 근무를 마치고 돌아온 유나. 지친 당신에게 따뜻한 차 한 잔과 낮은 목소리를 건넵니다.",
     "relationship": "Close Friend",
     "occupation": "Night-shift ICU Nurse",
@@ -10021,7 +10021,7 @@
     "gallery": [
       {
         "id": "yuna-g1",
-        "url": "/images/pending/yuna-01.svg",
+        "url": "/images/companions/yuna-portrait.jpg",
         "title": "Yuna — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10029,7 +10029,7 @@
       },
       {
         "id": "yuna-g2",
-        "url": "/images/pending/yuna-01.svg",
+        "url": "/images/companions/yuna-portrait.jpg",
         "title": "Yuna — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10037,7 +10037,7 @@
       },
       {
         "id": "yuna-g3",
-        "url": "/images/pending/yuna-01.svg",
+        "url": "/images/companions/yuna-portrait.jpg",
         "title": "Yuna — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10045,7 +10045,7 @@
       },
       {
         "id": "yuna-g4",
-        "url": "/images/pending/yuna-01.svg",
+        "url": "/images/companions/yuna-portrait.jpg",
         "title": "Yuna — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10060,7 +10060,8 @@
         "starter": "*Yuna looks up from her mug, eyes soft with exhaustion and warmth.* \"You're up late too. Sit — I'll pour you something warm.\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/yuna-portrait.jpg"
   },
   {
     "id": "sera",
@@ -10072,7 +10073,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/sera-01.svg",
+    "avatarUrl": "/images/companions/sera-portrait.jpg",
     "bio": "프로게임단 코치 세라. 승부욕은 강하지만 팀원 하나하나를 끝까지 챙기는 사람입니다.",
     "relationship": "Close Friend",
     "occupation": "E-sports Team Coach",
@@ -10095,7 +10096,7 @@
     "gallery": [
       {
         "id": "sera-g1",
-        "url": "/images/pending/sera-01.svg",
+        "url": "/images/companions/sera-portrait.jpg",
         "title": "Sera — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10103,7 +10104,7 @@
       },
       {
         "id": "sera-g2",
-        "url": "/images/pending/sera-01.svg",
+        "url": "/images/companions/sera-portrait.jpg",
         "title": "Sera — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10111,7 +10112,7 @@
       },
       {
         "id": "sera-g3",
-        "url": "/images/pending/sera-01.svg",
+        "url": "/images/companions/sera-portrait.jpg",
         "title": "Sera — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10119,7 +10120,7 @@
       },
       {
         "id": "sera-g4",
-        "url": "/images/pending/sera-01.svg",
+        "url": "/images/companions/sera-portrait.jpg",
         "title": "Sera — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10134,7 +10135,8 @@
         "starter": "*Sera spins her chair around, headset around her neck.* \"You're late. Ranked queue's already warm. Get in — I'll shotcall.\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/sera-portrait.jpg"
   },
   {
     "id": "mari",
@@ -10146,7 +10148,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": true,
-    "avatarUrl": "/images/pending/mari-01.svg",
+    "avatarUrl": "/images/companions/mari-portrait.jpg",
     "bio": "바닷가 작은 빵집을 운영하는 마리. 갓 구운 빵 냄새와 잔잔한 파도 소리로 당신을 맞이합니다.",
     "relationship": "Close Friend",
     "occupation": "Bakery Owner",
@@ -10169,7 +10171,7 @@
     "gallery": [
       {
         "id": "mari-g1",
-        "url": "/images/pending/mari-01.svg",
+        "url": "/images/companions/mari-portrait.jpg",
         "title": "Mari — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10177,7 +10179,7 @@
       },
       {
         "id": "mari-g2",
-        "url": "/images/pending/mari-01.svg",
+        "url": "/images/companions/mari-portrait.jpg",
         "title": "Mari — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10185,7 +10187,7 @@
       },
       {
         "id": "mari-g3",
-        "url": "/images/pending/mari-01.svg",
+        "url": "/images/companions/mari-portrait.jpg",
         "title": "Mari — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10193,7 +10195,7 @@
       },
       {
         "id": "mari-g4",
-        "url": "/images/pending/mari-01.svg",
+        "url": "/images/companions/mari-portrait.jpg",
         "title": "Mari — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10208,7 +10210,8 @@
         "starter": "*Mari wipes flour from her hands, smiling as the bell above the door chimes.* \"Perfect timing — the cinnamon rolls just came out. Sit by the window?\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/mari-portrait.jpg"
   },
   {
     "id": "rin",
@@ -10220,7 +10223,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": false,
-    "avatarUrl": "/images/pending/rin-01.svg",
+    "avatarUrl": "/images/companions/rin-portrait.jpg",
     "bio": "네온이 번쩍이는 뒷골목의 해커 린. 겉으론 시니컬하지만 위험할 때 가장 먼저 당신을 감쌉니다.",
     "relationship": "Close Friend",
     "occupation": "Freelance Netrunner",
@@ -10243,7 +10246,7 @@
     "gallery": [
       {
         "id": "rin-g1",
-        "url": "/images/pending/rin-01.svg",
+        "url": "/images/companions/rin-portrait.jpg",
         "title": "Rin — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10251,7 +10254,7 @@
       },
       {
         "id": "rin-g2",
-        "url": "/images/pending/rin-01.svg",
+        "url": "/images/companions/rin-portrait.jpg",
         "title": "Rin — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10259,7 +10262,7 @@
       },
       {
         "id": "rin-g3",
-        "url": "/images/pending/rin-01.svg",
+        "url": "/images/companions/rin-portrait.jpg",
         "title": "Rin — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10267,7 +10270,7 @@
       },
       {
         "id": "rin-g4",
-        "url": "/images/pending/rin-01.svg",
+        "url": "/images/companions/rin-portrait.jpg",
         "title": "Rin — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10282,7 +10285,8 @@
         "starter": "*Rin doesn't look up from three glowing screens, cigarette unlit between her lips.* \"You brought trouble again? Good. I was bored.\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/rin-portrait.jpg"
   },
   {
     "id": "hana",
@@ -10294,7 +10298,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": false,
-    "avatarUrl": "/images/pending/hana-01.svg",
+    "avatarUrl": "/images/companions/hana-portrait.jpg",
     "bio": "식물에게 말을 거는 수줍은 식물 삽화가 하나. 조용하지만 세상을 세심하게 바라봅니다.",
     "relationship": "Close Friend",
     "occupation": "Botanical Illustrator",
@@ -10317,7 +10321,7 @@
     "gallery": [
       {
         "id": "hana-g1",
-        "url": "/images/pending/hana-01.svg",
+        "url": "/images/companions/hana-portrait.jpg",
         "title": "Hana — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10325,7 +10329,7 @@
       },
       {
         "id": "hana-g2",
-        "url": "/images/pending/hana-01.svg",
+        "url": "/images/companions/hana-portrait.jpg",
         "title": "Hana — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10333,7 +10337,7 @@
       },
       {
         "id": "hana-g3",
-        "url": "/images/pending/hana-01.svg",
+        "url": "/images/companions/hana-portrait.jpg",
         "title": "Hana — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10341,7 +10345,7 @@
       },
       {
         "id": "hana-g4",
-        "url": "/images/pending/hana-01.svg",
+        "url": "/images/companions/hana-portrait.jpg",
         "title": "Hana — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10356,7 +10360,8 @@
         "starter": "*Hana peeks over an enormous monstera leaf, cheeks pink.* \"Oh — I didn't hear you. Fern was, um, telling me about his day. Do you want to see?\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/hana-portrait.jpg"
   },
   {
     "id": "kaede",
@@ -10368,7 +10373,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": false,
-    "avatarUrl": "/images/pending/kaede-01.svg",
+    "avatarUrl": "/images/companions/kaede-portrait.jpg",
     "bio": "무대에서 물러난 발레리나 출신 안무가 카에데. 우아함 뒤에 장난기 어린 미소를 숨겼습니다.",
     "relationship": "Close Friend",
     "occupation": "Choreographer",
@@ -10391,7 +10396,7 @@
     "gallery": [
       {
         "id": "kaede-g1",
-        "url": "/images/pending/kaede-01.svg",
+        "url": "/images/companions/kaede-portrait.jpg",
         "title": "Kaede — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10399,7 +10404,7 @@
       },
       {
         "id": "kaede-g2",
-        "url": "/images/pending/kaede-01.svg",
+        "url": "/images/companions/kaede-portrait.jpg",
         "title": "Kaede — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10407,7 +10412,7 @@
       },
       {
         "id": "kaede-g3",
-        "url": "/images/pending/kaede-01.svg",
+        "url": "/images/companions/kaede-portrait.jpg",
         "title": "Kaede — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10415,7 +10420,7 @@
       },
       {
         "id": "kaede-g4",
-        "url": "/images/pending/kaede-01.svg",
+        "url": "/images/companions/kaede-portrait.jpg",
         "title": "Kaede — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10430,7 +10435,8 @@
         "starter": "*Kaede finishes a slow turn, catching your eye in the studio mirror.* \"You watched the whole run. Come — your posture is terrible and I'm fixing it.\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/kaede-portrait.jpg"
   },
   {
     "id": "nadia",
@@ -10442,7 +10448,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": false,
-    "avatarUrl": "/images/pending/nadia-01.svg",
+    "avatarUrl": "/images/companions/nadia-portrait.jpg",
     "bio": "오랜 분쟁 지역을 다녀온 다큐멘터리 사진작가 나디아. 큰 세상보다 작은 일상에 다정합니다.",
     "relationship": "Close Friend",
     "occupation": "Documentary Photographer",
@@ -10465,7 +10471,7 @@
     "gallery": [
       {
         "id": "nadia-g1",
-        "url": "/images/pending/nadia-01.svg",
+        "url": "/images/companions/nadia-portrait.jpg",
         "title": "Nadia — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10473,7 +10479,7 @@
       },
       {
         "id": "nadia-g2",
-        "url": "/images/pending/nadia-01.svg",
+        "url": "/images/companions/nadia-portrait.jpg",
         "title": "Nadia — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10481,7 +10487,7 @@
       },
       {
         "id": "nadia-g3",
-        "url": "/images/pending/nadia-01.svg",
+        "url": "/images/companions/nadia-portrait.jpg",
         "title": "Nadia — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10489,7 +10495,7 @@
       },
       {
         "id": "nadia-g4",
-        "url": "/images/pending/nadia-01.svg",
+        "url": "/images/companions/nadia-portrait.jpg",
         "title": "Nadia — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10504,7 +10510,8 @@
         "starter": "*Nadia lowers her camera, a rare easy smile crossing her face.* \"No headlines today. Just coffee and this crooked little street — want to walk it with me?\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/nadia-portrait.jpg"
   },
   {
     "id": "ivy",
@@ -10516,7 +10523,7 @@
     "isOnline": true,
     "hasVoice": true,
     "isPopular": false,
-    "avatarUrl": "/images/pending/ivy-01.svg",
+    "avatarUrl": "/images/companions/ivy-portrait.jpg",
     "bio": "재즈가 흐르는 카페의 바리스타 아이비. 냅킨에 곡을 적으며 당신의 이야기를 노래로 만듭니다.",
     "relationship": "Close Friend",
     "occupation": "Jazz Barista",
@@ -10539,7 +10546,7 @@
     "gallery": [
       {
         "id": "ivy-g1",
-        "url": "/images/pending/ivy-01.svg",
+        "url": "/images/companions/ivy-portrait.jpg",
         "title": "Ivy — portrait 1",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10547,7 +10554,7 @@
       },
       {
         "id": "ivy-g2",
-        "url": "/images/pending/ivy-01.svg",
+        "url": "/images/companions/ivy-portrait.jpg",
         "title": "Ivy — portrait 2",
         "isUnlocked": true,
         "isNSFW": false,
@@ -10555,7 +10562,7 @@
       },
       {
         "id": "ivy-g3",
-        "url": "/images/pending/ivy-01.svg",
+        "url": "/images/companions/ivy-portrait.jpg",
         "title": "Ivy — portrait 3",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10563,7 +10570,7 @@
       },
       {
         "id": "ivy-g4",
-        "url": "/images/pending/ivy-01.svg",
+        "url": "/images/companions/ivy-portrait.jpg",
         "title": "Ivy — portrait 4",
         "isUnlocked": false,
         "isNSFW": false,
@@ -10578,6 +10585,7 @@
         "starter": "*Ivy slides a latte across the counter, a half-finished melody scrawled on the napkin under it.* \"This one's about you. Don't read it yet — it's not done being honest.\"",
         "badge": "Intro"
       }
-    ]
+    ],
+    "bannerUrl": "/images/companions/ivy-portrait.jpg"
   }
 ]
