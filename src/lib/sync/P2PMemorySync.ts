@@ -6,6 +6,7 @@
  */
 
 import * as Y from 'yjs';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import type {
@@ -52,6 +53,7 @@ export class P2PMemorySync {
   private config: Required<P2PSyncConfig>;
   private callbacks: SyncCallbacks;
   private isConnected = false;
+  private peerCount = 0;
   private pendingOperations: SyncOperation[] = [];
   private vectorClock: Record<string, number> = {};
 
@@ -104,7 +106,7 @@ export class P2PMemorySync {
     });
   }
 
-  private async initPersistence(): void {
+  private async initPersistence(): Promise<void> {
     try {
       this.persistence = new IndexeddbPersistence(`companion-${this.companionId}`, this.doc);
       await this.persistence.whenSynced;
@@ -128,13 +130,15 @@ export class P2PMemorySync {
         this.callbacks.onSyncStateChange?.(this.getSyncState());
       });
 
-      this.provider.on('peer-change', () => {
-        const peers = Array.from(this.provider!.getPeers());
-        console.log('[P2PSync] Peers:', peers.length);
+      this.provider.on('peers', (event: { webrtcPeers: string[]; bcPeers: string[] }) => {
+        // y-webrtc reports peers via this event; there is no getPeers().
+        this.peerCount = event.webrtcPeers.length;
+        console.log('[P2PSync] Peers:', this.peerCount);
+        this.callbacks.onSyncStateChange?.(this.getSyncState());
       });
 
-      this.provider.on('sync', (isSynced: boolean) => {
-        if (isSynced) {
+      this.provider.on('synced', (event: { synced: boolean }) => {
+        if (event.synced) {
           this.updateSyncStatus('idle');
           this.pushPendingOperations();
         }
@@ -420,7 +424,7 @@ export class P2PMemorySync {
    * 연결된 피어 수
    */
   getPeerCount(): number {
-    return this.provider ? this.provider.getPeers().size : 0;
+    return this.provider ? this.peerCount : 0;
   }
 
   /**
@@ -467,14 +471,70 @@ export class P2PMemorySync {
  */
 export function useP2PSync(
   companionId: string,
-  initialCompanion?: UnifiedCompanion
+  initialCompanion?: UnifiedCompanion,
 ) {
-  // 실제 구현에서는 useSyncExternalStore 또는 useReducer로 상태 관리
-  // 여기서는 클래스 인스턴스 생성 로직만 제공
+  const syncRef = useRef<P2PMemorySync | null>(null);
+  const [syncState, setSyncState] = useState<SyncState | null>(null);
+  const [ready, setReady] = useState(false);
+  const [peerCount, setPeerCount] = useState(0);
+
+  // The client wires up Yjs + IndexedDB asynchronously and is not safe to
+  // construct during render, so creation is an explicit async call.
+  const createSync = useCallback(
+    async (callbacks?: SyncCallbacks): Promise<P2PMemorySync> => {
+      if (syncRef.current) return syncRef.current;
+      const instance = new P2PMemorySync(
+        { companionId, roomName: `companion-${companionId}` },
+        {
+          ...callbacks,
+          onSyncStateChange: (state) => {
+            setSyncState(state);
+            setPeerCount(instance.getPeerCount());
+            callbacks?.onSyncStateChange?.(state);
+          },
+        },
+      );
+      if (initialCompanion) instance.loadCompanion(initialCompanion);
+      syncRef.current = instance;
+      setReady(true);
+      setSyncState(instance.getSyncState());
+      setPeerCount(instance.getPeerCount());
+      return instance;
+    },
+    [companionId, initialCompanion],
+  );
+
+  useEffect(() => {
+    return () => {
+      syncRef.current?.destroy();
+      syncRef.current = null;
+    };
+  }, []);
+
+  const forceSync = useCallback(async () => {
+    await syncRef.current?.forceSync();
+    if (syncRef.current) {
+      setSyncState(syncRef.current.getSyncState());
+      setPeerCount(syncRef.current.getPeerCount());
+    }
+  }, []);
+
+  const getPendingOps = useCallback(
+    () => syncRef.current?.getSyncState().pendingOps ?? 0,
+    [],
+  );
+
   return {
-    createSync: (callbacks?: SyncCallbacks) => new P2PSyncConfig(companionId, callbacks),
+    syncState,
+    peerCount,
+    ready,
+    online: syncState ? syncState.status !== 'offline' : false,
+    createSync,
+    forceSync,
+    getPendingOps,
   };
 }
+
 
 // 설정 타입 재export
 export type { P2PSyncConfig as P2PSyncConfigType };

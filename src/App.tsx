@@ -21,10 +21,12 @@ import { AIHubPage } from "@/pages/AIHubPage";
 import { APIKeysPage } from "@/pages/APIKeysPage";
 import { AccountSettingsPage } from "@/pages/AccountSettingsPage";
 import { CandyChatPage } from "@/pages/CandyChatPage";
+import { CharacterLibraryPage } from "@/pages/CharacterLibraryPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { MarketplacePage } from "@/pages/MarketplacePage";
 import { MyNeuroPage } from "@/pages/MyNeuroPage";
+import { StudioPage } from "@/pages/StudioPage";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
@@ -223,6 +225,13 @@ export function App() {
 								📸 Gallery & Memories
 							</NavLink>
 							<NavLink
+								to="/library"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🗂️ Character Library
+							</NavLink>
+							<NavLink
 								to="/hub"
 								onClick={() => setMobileNavOpen(false)}
 								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
@@ -249,6 +258,27 @@ export function App() {
 								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
 							>
 								🔌 Integrations
+							</NavLink>
+							<NavLink
+								to="/studio"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🔬 Studio
+							</NavLink>
+							<NavLink
+								to="/library"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								📚 Character Library
+							</NavLink>
+							<NavLink
+								to="/studio"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🎬 Studio
 							</NavLink>
 						</div>
 					)}
@@ -299,7 +329,18 @@ export function App() {
 									</AuthGate>
 								}
 							/>
-							{/* Preserve original P2P utility routes for ecosystem compatibility */}
+							{/* Character card import + gallery. Shares the
+						    `privseai_companion_cards` key that Chat reads, so cards
+						    imported here become selectable companions. */}
+						<Route
+							path="/library"
+							element={
+								<AuthGate>
+									<CharacterLibraryPage />
+								</AuthGate>
+							}
+						/>
+						{/* Preserve original P2P utility routes for ecosystem compatibility */}
 							<Route
 								path="/world"
 								element={
@@ -348,7 +389,18 @@ export function App() {
 									</AuthGate>
 								}
 							/>
-							<Route path="/pricing" element={<PricingPage onBack={goHome} />} />
+							{/* Single entry point + tab bar for the four ledgers above.
+						    /events, /evidence, /forecasts and /impact were routable
+						    but unlinked, so this is the only discoverable way in. */}
+						<Route
+							path="/studio"
+							element={
+								<AuthGate>
+									<StudioPage />
+								</AuthGate>
+							}
+						/>
+						<Route path="/pricing" element={<PricingPage onBack={goHome} />} />
 							<Route path="/marketplace" element={<AuthGate><MarketplacePage /></AuthGate>} />
 							<Route path="/integrations" element={<AuthGate><MyNeuroPage /></AuthGate>} />
 							<Route

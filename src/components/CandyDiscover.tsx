@@ -1,11 +1,15 @@
 import type { CandyCompanion } from "@/data/candyPresets";
 import { useAIHub } from "@/hooks/useAIHub";
+import { useAuth } from "@/hooks/useAuth";
 import { CharacterCardParser } from "@/lib/character-card";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { StockImageSearch } from "@/components/StockImageSearch";
 import { CompanionGenerator } from "@/components/CompanionGenerator";
 import { ModelPresetPanel } from "@/components/ModelPresetPanel";
+import { GuestTrialChat } from "@/components/GuestTrialChat";
+import { hasUsedGuestTrial } from "@/lib/guest-chat";
+import type { CharacterCard } from "@/types/character";
 
 interface Props {
 	companions: CandyCompanion[];
@@ -18,6 +22,33 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 	const [selectedTag, setSelectedTag] = useState<string>("all");
 	const navigate = useNavigate();
 	const { aiHub, tick: _tick } = useAIHub();
+	const { isAuthenticated } = useAuth();
+
+	/**
+	 * Guest trial entry point. `GuestTrialChat` was written but never mounted,
+	 * so a signed-out visitor had no way to try a companion without creating an
+	 * account. Shown only to guests, and only until the trial is consumed
+	 * (`hasUsedGuestTrial` persists across reloads).
+	 */
+	const guestTrialCard: CharacterCard | null =
+		!isAuthenticated && !hasUsedGuestTrial() && companions.length > 0
+			? {
+					spec: "chara_card_v2",
+					data: CharacterCardParser.profileToCard({
+						id: companions[0].id,
+						name: companions[0].name,
+						age: companions[0].age,
+						avatarUrl: companions[0].avatarUrl,
+						gallery: companions[0].gallery?.map((g) => g.url) ?? [],
+						bio: companions[0].bio,
+						relationship: companions[0].relationship,
+						occupation: companions[0].occupation,
+						hobbies: companions[0].hobbies,
+						personality: companions[0].personality,
+						stage: companions[0].stage,
+					}),
+				}
+			: null;
 
 	const handleShareToP2P = (comp: CandyCompanion) => {
 		const card = {
@@ -122,6 +153,10 @@ export function CandyDiscover({ companions, onOpenCreate }: Props) {
 					</div>
 				</div>
 			</div>
+
+			{/* Guest trial: mounted only for signed-out visitors who have not yet
+			    consumed their free messages. */}
+			{guestTrialCard && <GuestTrialChat card={guestTrialCard} />}
 
 			<StockImageSearch />
 			<CompanionGenerator />
