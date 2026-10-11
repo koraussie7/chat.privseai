@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { ByokManager } from "@/components/ByokManager";
 import { MyNeuroPanel } from "@/components/MyNeuroPanel";
 import { MemosSyncPanel } from "@/components/MemosSyncPanel";
+import { P2PSyncPanel } from "@/components/P2PSyncPanel";
 import { useEffect, useState } from "react";
 
 interface Props {
@@ -11,6 +12,15 @@ interface Props {
 const API_URL =
 	(import.meta as { env?: { VITE_PUBLIC_API_URL?: string } }).env?.VITE_PUBLIC_API_URL ??
 	"https://api.privseai.com";
+
+/**
+ * Room name for the P2P companion sync. Settings is account-scoped, not
+ * companion-scoped — there is no `:companionId` param here — so it syncs the
+ * account-wide state under one stable room id. The chat view mounts the same
+ * panel per companion when a companion is open; keeping the id constant here
+ * means two settings tabs on different devices pair with each other.
+ */
+const P2P_SYNC_COMPANION_ID = "account";
 
 export function AccountSettingsPage({ onBack }: Props) {
 	const { user, quota, loading: authLoading, refresh } = useAuth();
@@ -233,6 +243,12 @@ export function AccountSettingsPage({ onBack }: Props) {
 				{/* my-neuro desktop interop + long-term memory sync */}
 				<MyNeuroPanel companion={null} />
 				<MemosSyncPanel />
+
+				{/* P2P multi-device sync: CRDT merge of companion state across
+				    devices. Mounted here rather than in the chat view because it is
+				    a settings concern, and the panel is written to stay quiet with
+				    no peers instead of implying activity that isn't happening. */}
+				<P2PSyncPanel companionId={P2P_SYNC_COMPANION_ID} />
 			</div>
 		</div>
 	);

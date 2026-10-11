@@ -6,7 +6,7 @@
  */
 
 import * as Y from 'yjs';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { WebrtcProvider } from 'y-webrtc';
 import { IndexeddbPersistence } from 'y-indexeddb';
 import type {
@@ -472,6 +472,7 @@ export class P2PMemorySync {
 export function useP2PSync(
   companionId: string,
   initialCompanion?: UnifiedCompanion,
+  hookCallbacks?: SyncCallbacks,
 ) {
   const syncRef = useRef<P2PMemorySync | null>(null);
   const [syncState, setSyncState] = useState<SyncState | null>(null);
@@ -486,10 +487,12 @@ export function useP2PSync(
       const instance = new P2PMemorySync(
         { companionId, roomName: `companion-${companionId}` },
         {
+          ...hookCallbacks,
           ...callbacks,
           onSyncStateChange: (state) => {
             setSyncState(state);
             setPeerCount(instance.getPeerCount());
+            hookCallbacks?.onSyncStateChange?.(state);
             callbacks?.onSyncStateChange?.(state);
           },
         },
@@ -501,7 +504,7 @@ export function useP2PSync(
       setPeerCount(instance.getPeerCount());
       return instance;
     },
-    [companionId, initialCompanion],
+    [companionId, initialCompanion, hookCallbacks],
   );
 
   useEffect(() => {
@@ -520,7 +523,7 @@ export function useP2PSync(
   }, []);
 
   const getPendingOps = useCallback(
-    () => syncRef.current?.getSyncState().pendingOps ?? 0,
+    () => syncRef.current?.getSyncState().pendingChanges ?? 0,
     [],
   );
 
@@ -528,7 +531,7 @@ export function useP2PSync(
     syncState,
     peerCount,
     ready,
-    online: syncState ? syncState.status !== 'offline' : false,
+    online: syncState ? syncState.status !== 'error' : false,
     createSync,
     forceSync,
     getPendingOps,

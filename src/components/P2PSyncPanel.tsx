@@ -13,7 +13,7 @@
  * It deliberately does not fabricate activity: with no peers connected the
  * honest read is "offline, waiting for another device".
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useP2PSync } from "@/lib/sync/P2PMemorySync";
 import type { SyncOperation } from "@/types/unified";
 
@@ -39,15 +39,20 @@ export function P2PSyncPanel({ companionId }: Props) {
     peerCount,
     online,
     ready,
+    createSync,
     forceSync,
-  } = useP2PSync(
-    companionId,
-    undefined,
-    {
+  } = useP2PSync(companionId);
+
+  // `useP2PSync` does not construct the Yjs client during render — it exposes
+  // `createSync(callbacks)` for that, because the client is not safe to build
+  // while rendering. Callbacks must be passed here, not to the hook, which only
+  // takes (companionId, initialCompanion).
+  useEffect(() => {
+    void createSync({
       onConflict: (ops) => setConflicts(ops),
       onError: (err) => setError(err.message),
-    },
-  );
+    });
+  }, [createSync]);
 
   const handleSync = async () => {
     setSyncing(true);
