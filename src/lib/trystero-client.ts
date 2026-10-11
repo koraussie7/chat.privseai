@@ -13,6 +13,7 @@
  *  - File/action-based sync for model chunks (replaces IPFS for small payloads)
  */
 
+import { REGION, TRYSTERO_APP_ID, TRYSTERO_STRATEGY, resolveNostrRelays } from "@/lib/config";
 import { type ClientEvent, type Room, type SendOptions, joinRoom, selfId } from "trystero";
 
 import type {
@@ -41,24 +42,28 @@ export type TrysteroStrategy =
 	| "ipfs"
 	| "ws-relay";
 
+const KNOWN_STRATEGIES = new Set<string>([
+	"nostr",
+	"mqtt",
+	"supabase",
+	"firebase",
+	"ipfs",
+	"ws-relay",
+]);
+
 const DEFAULT_CONFIG: TrysteroConfig = {
-	appId: "privseai-p2pclaw",
-	strategy: "nostr",
-	// Override trystero's default nostr relay list: bendernostur.duckdns.org:8443
-	// has an expired TLS certificate (expired 2026-10-05), which blocks signaling.
-	// Only relays with valid certificates are listed here.
+	appId: TRYSTERO_APP_ID,
+	// Fall back to "nostr" if VITE_TRYSTERO_STRATEGY holds an unknown value;
+	// trystero throws at join time otherwise.
+	strategy: (KNOWN_STRATEGIES.has(TRYSTERO_STRATEGY)
+		? TRYSTERO_STRATEGY
+		: "nostr") as TrysteroStrategy,
+	// Signaling relays come from config.ts: VITE_NOSTR_RELAYS when set, otherwise
+	// NOSTR_RELAY_FALLBACKS — which deliberately omits bendernostur.duckdns.org:8443
+	// (expired TLS certificate, 2026-10-05). A single expired relay in the list
+	// stalls the whole WebRTC handshake and keeps the mesh silently offline.
 	relayConfig: {
-		urls: [
-			"wss://0x-nostr-relay.fly.dev",
-			"wss://nos.lol",
-			"wss://nostr.rblb.it",
-			"wss://cdn.satellite.earth",
-			"wss://relay.nostrmap.net",
-			"wss://nostr.red5d.dev",
-			"wss://nostr.stakey.net",
-			"wss://nostrcity-club.fly.dev",
-			"wss://relay.aarpia.com",
-		],
+		urls: resolveNostrRelays(),
 	},
 };
 
@@ -149,7 +154,7 @@ export class TrysteroP2PClient {
 			this.peers.set(peerId, {
 				id: peerId,
 				joinedAt: Date.now(),
-				region: import.meta.env.VITE_REGION ?? "global",
+				region: REGION,
 			});
 			for (const handler of this.handlers.peerJoin) handler(peerId);
 		};
@@ -325,7 +330,7 @@ export class TrysteroP2PClient {
 				return {
 					peerId: selfId,
 					models: [],
-					region: import.meta.env.VITE_REGION ?? "global",
+					region: REGION,
 					timestamp: Date.now(),
 				};
 			},

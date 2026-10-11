@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 
 export function WorldCockpit() {
 	const { network, events, impacts, pingPeer } = useTrystero();
-	const { status: colibriStatus, models } = useColibri();
+	const { status: colibriStatus, connection: colibriConnection, models } = useColibri();
 	const [peerLatencies, setPeerLatencies] = useState<Record<string, number>>({});
 
 	useEffect(() => {
@@ -68,7 +68,13 @@ export function WorldCockpit() {
 					/>
 					<StatCard
 						label="Colibri inference"
-						value={colibriStatus?.loaded ? "Ready" : "Offline"}
+						value={
+							colibriStatus?.loaded
+								? "Ready"
+								: colibriConnection === "unreachable"
+									? "No node"
+									: "Offline"
+						}
 						icon="◈"
 						trend={colibriStatus?.loaded ? "active" : undefined}
 					/>

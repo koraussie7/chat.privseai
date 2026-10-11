@@ -3,6 +3,7 @@ import {
   type ColibriModelInfo,
   ColibriWASMClient,
 } from "@/lib/colibri-wasm-client";
+import { REGION, COLIBRI_ADVERT_ENABLED, COLIBRI_ADVERT_INTERVAL_MS } from "@/lib/config";
 import {
   type ColibriGatewayInfo,
   type NetworkState,
@@ -140,18 +141,32 @@ export function useTrystero(options: UseTrysteroOptions = {}) {
   };
 }
 
+export type ColibriConnectionState = "pending" | "online" | "unreachable";
+
 export function useColibri(baseUrl?: string) {
   const [models, setModels] = useState<ColibriModelInfo[]>([]);
   const [status, setStatus] = useState<Awaited<
     ReturnType<ColibriWASMClient["getStatus"]>
   > | null>(null);
+  // Distinguishes "node answered" from "node unreachable". Both leave `status`
+  // null, so `status?.loaded` alone renders a dead node as merely "Offline"
+  // with no way to tell it apart from a node still booting.
+  const [connection, setConnection] = useState<ColibriConnectionState>("pending");
   const [loading, setLoading] = useState(false);
   const clientRef = useRef<ColibriWASMClient | null>(null);
 
   useEffect(() => {
     clientRef.current = new ColibriWASMClient(baseUrl);
-    clientRef.current.listModels().then(setModels).catch(console.error);
-    clientRef.current.getStatus().then(setStatus).catch(console.error);
+    setConnection("pending");
+    setStatus(null);
+    clientRef.current.listModels().then(setModels).catch(() => setModels([]));
+    clientRef.current
+      .getStatus()
+      .then((s) => {
+        setStatus(s);
+        setConnection("online");
+      })
+      .catch(() => setConnection("unreachable"));
   }, [baseUrl]);
 
   const generate = useCallback(
@@ -180,13 +195,19 @@ export function useColibri(baseUrl?: string) {
 
   const refreshStatus = useCallback(async () => {
     if (!clientRef.current) return;
-    const s = await clientRef.current.getStatus();
-    setStatus(s);
+    try {
+      const s = await clientRef.current.getStatus();
+      setStatus(s);
+      setConnection("online");
+    } catch {
+      setConnection("unreachable");
+    }
   }, []);
 
   return {
     models,
     status,
+    connection,
     loading,
     generate,
     registerModel,
@@ -205,4 +226,102 @@ export function useNetworkPoll(intervalMs = 10000) {
   }, [intervalMs]);
 
   return { round };
+}
+
+/**
+ * Advertise this peer's Colibri gateway to the P2P mesh.
+ *
+ * `broadcastColibriGateway` existed on the client but nothing ever called it, so
+ * `colibriPeers` stayed permanently empty and distributed inference could never
+ * discover a peer. This hook closes that loop:
+ *
+ *  1. Probe the Fellowship node's `/api/colibri/status` — only a node that is
+ *     actually reachable and has Colibri loaded is worth advertising.
+ *  2. Broadcast `colibri-gateway` when the probe succeeds, then re-broadcast on
+ *     an interval and whenever the peer set grows, because Trystero actions are
+ *     not replayed to peers that join later.
+ *
+ * A localhost base URL is never advertised: peers cannot reach it, and
+ * CandyChatPage filters localhost endpoints out anyway. Enable via
+ * VITE_COLIBRI_ADVERT_ENABLED=true once VITE_FELLOWSHIP_URL is a public origin.
+ *
+ * Returns the gateway state for status UI: "disabled" | "offline" | "advertising".
+ */
+export function useColibriGatewayAdvert(
+  options: {
+    intervalMs?: number;
+    /**
+     * Injectable broadcast sink. Defaults to the one from `useTrystero()`, but
+     * because this hook lives in the same module an intra-module call cannot be
+     * intercepted with `vi.spyOn(hooks, "useTrystero")` — tests pass their own
+     * spy here instead of reaching across module boundaries.
+     */
+    broadcast?: (info: ColibriGatewayInfo) => void;
+  } = {},
+) {
+  const { intervalMs = COLIBRI_ADVERT_INTERVAL_MS, broadcast: broadcastOverride } =
+    options;
+  const { network, broadcastColibriGateway, registerClientReady } = useTrystero();
+  const broadcast = broadcastOverride ?? broadcastColibriGateway;
+  const [state, setState] = useState<"disabled" | "offline" | "advertising">("offline");
+
+  const peerCount = network?.peers.length ?? 0;
+  const lastAdvertisedAt = useRef(0);
+
+  useEffect(() => {
+    if (!COLIBRI_ADVERT_ENABLED) {
+      setState("disabled");
+      return;
+    }
+
+    const client = new ColibriWASMClient();
+    const baseUrl = client.getBaseUrl();
+    // Peers cannot dial into our loopback interface.
+    const isPublicBase =
+      /^https?:\/\//.test(baseUrl) && !/localhost|127\.0\.0\.1|0\.0\.0\.0/.test(baseUrl);
+
+    let cancelled = false;
+
+    const advert = async () => {
+      if (cancelled || !isPublicBase) return;
+      try {
+        const status = await client.getStatus();
+        // Only advertise a node whose Colibri engine is actually loaded.
+        if (cancelled || !status?.loaded) {
+          setState("offline");
+          return;
+        }
+        broadcast({
+          baseUrl,
+          model: status.modelLoaded ?? undefined,
+          region: REGION,
+          peerId: network?.selfId ?? "",
+          timestamp: Date.now(),
+          isPublic: true,
+        });
+        lastAdvertisedAt.current = Date.now();
+        setState("advertising");
+      } catch {
+        setState("offline");
+      }
+    };
+
+    void advert();
+
+    const timer = setInterval(() => {
+      void advert();
+    }, intervalMs);
+
+    // Re-advertise when peers join: Trystero does not replay past actions.
+    if (peerCount > 0 && Date.now() - lastAdvertisedAt.current > 10_000) {
+      void advert();
+    }
+
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [intervalMs, peerCount, broadcastColibriGateway, registerClientReady, network?.selfId]);
+
+  return { state };
 }
