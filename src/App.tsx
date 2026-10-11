@@ -11,7 +11,10 @@ import { LiveEvents } from "@/components/LiveEvents";
 import { WorldCockpit } from "@/components/WorldCockpit";
 import { CANDY_PRESETS, loadAllCandyPresets, type CandyCompanion } from "@/data/candyPresets";
 import { useAuth } from "@/hooks/useAuth";
-import { useTrystero } from "@/hooks/useTrysteroP2P";
+import {
+	useColibriGatewayAdvert,
+	useTrystero,
+} from "@/hooks/useTrysteroP2P";
 import { useI18n } from "@/lib/i18n";
 import { IntegrationProvider } from "@/lib/integration/PrivseAIAdapter";
 import { AIHubPage } from "@/pages/AIHubPage";
@@ -21,6 +24,7 @@ import { CandyChatPage } from "@/pages/CandyChatPage";
 import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { MarketplacePage } from "@/pages/MarketplacePage";
+import { MyNeuroPage } from "@/pages/MyNeuroPage";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
 
@@ -106,7 +110,16 @@ export function App() {
 	}, []);
 
 	const { colibriPeers, network } = useTrystero();
-	const peerCount = (network?.peers.length ?? 0) + colibriPeers.length;
+	// Advertise this peer's Colibri gateway so peers can discover it for
+	// distributed inference. No-op unless VITE_COLIBRI_ADVERT_ENABLED=true and
+	// VITE_FELLOWSHIP_URL is a publicly reachable origin.
+	const { state: colibriGatewayState } = useColibriGatewayAdvert();
+	// A gateway that is currently advertising counts toward the visible mesh:
+	// it is a live, reachable node even before any peer has answered.
+	const peerCount =
+		(network?.peers.length ?? 0) +
+		colibriPeers.length +
+		(colibriGatewayState === "advertising" ? 1 : 0);
 	const { user, logout } = useAuth();
 
 	const handleCreateCompanion = (newComp: CandyCompanion) => {
@@ -230,6 +243,13 @@ export function App() {
 							>
 								🛍️ {t("marketplace.menu")}
 							</NavLink>
+							<NavLink
+								to="/integrations"
+								onClick={() => setMobileNavOpen(false)}
+								className="block px-3 py-2 rounded-xl text-sm font-semibold hover:bg-white/5"
+							>
+								🔌 Integrations
+							</NavLink>
 						</div>
 					)}
 
@@ -330,6 +350,7 @@ export function App() {
 							/>
 							<Route path="/pricing" element={<PricingPage onBack={goHome} />} />
 							<Route path="/marketplace" element={<AuthGate><MarketplacePage /></AuthGate>} />
+							<Route path="/integrations" element={<AuthGate><MyNeuroPage /></AuthGate>} />
 							<Route
 								path="/settings"
 								element={
