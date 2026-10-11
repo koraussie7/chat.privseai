@@ -40,7 +40,7 @@ export function GuestTrialChat({ card }: { card: CharacterCard }) {
 			<div className="flex items-center justify-between mb-3">
 				<h3 className="text-sm font-bold text-white">Trial chat with {card.data.name}</h3>
 				<span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-gray-300">
-					{remaining === null ? GUEST_LEFT : `${Math.max(remaining ?? 0, 0)} messages left`}
+					{remainingLabel(remaining)}
 				</span>
 			</div>
 
@@ -52,9 +52,7 @@ export function GuestTrialChat({ card }: { card: CharacterCard }) {
 					<div
 						key={i}
 						className={`text-xs rounded-xl px-3 py-2 max-w-[85%] ${
-							m.role === "user"
-								? "ml-auto bg-pink-600/80 text-white"
-								: "bg-white/5 text-gray-200"
+							m.role === "user" ? "ml-auto bg-pink-600/80 text-white" : "bg-white/5 text-gray-200"
 						}`}
 					>
 						{m.content}
@@ -74,8 +72,8 @@ export function GuestTrialChat({ card }: { card: CharacterCard }) {
 						Trial ended — you used all 3 messages
 					</p>
 					<p className="text-[10px] text-amber-100/80">
-						Create an account to keep chatting with {card.data.name}, unlock images, and
-						save your conversation memory.
+						Create an account to keep chatting with {card.data.name}, unlock images, and save your
+						conversation memory.
 					</p>
 				</div>
 			) : (
@@ -123,4 +121,14 @@ export function GuestTrialChat({ card }: { card: CharacterCard }) {
 	);
 }
 
-const GUEST_LEFT = "3 messages left";
+const GUEST_LIMIT = 3;
+
+/**
+ * Remaining-messages label. Falls back to the static limit when the policy is
+ * server-driven and has not reported a number yet.
+ */
+function remainingLabel(remaining: number | null): string {
+	return remaining === null
+		? `${GUEST_LIMIT} messages left`
+		: `${Math.max(remaining, 0)} messages left`;
+}

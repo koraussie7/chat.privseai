@@ -80,6 +80,13 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 					shortLabel="Gallery"
 					collapsed={collapsed}
 				/>
+				<CandyNavItem
+					to="/library"
+					icon="🗂️"
+					label="Character Library"
+					shortLabel="Cards"
+					collapsed={collapsed}
+				/>
 
 				<div className="pt-4 pb-2">
 					<div
@@ -110,6 +117,8 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 				<CandyNavItem to="/hub" icon="🧠" label="AI Hub" shortLabel="Hub" collapsed={collapsed} />
 				<CandyNavItem to="/marketplace" icon="🛍️" label={t("marketplace.menu")} shortLabel={t("marketplace.shortMenu")} collapsed={collapsed} badge={t("marketplace.newBadge")} />
 				<CandyNavItem to="/integrations" icon="🔌" label="Integrations" shortLabel="Bridge" collapsed={collapsed} />
+				<CandyNavItem to="/library" icon="📚" label="Character Library" shortLabel="Library" collapsed={collapsed} />
+				<CandyNavItem to="/studio" icon="🎬" label="Studio" shortLabel="Studio" collapsed={collapsed} badge="Pythia" />
 				<a
 					href="https://browserytools.com"
 					target="_blank"
@@ -138,6 +147,13 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 					collapsed={collapsed}
 				/>
 
+				<CandyNavItem
+					to="/studio"
+					icon="🔬"
+					label="Studio"
+					shortLabel="Studio"
+					collapsed={collapsed}
+				/>
 				<CandyNavItem
 					to="/world"
 					icon="🌐"
@@ -230,6 +246,7 @@ function CandyNavItem({
 	to,
 	icon,
 	label,
+	shortLabel,
 	collapsed,
 	badge,
 }: {
@@ -251,7 +268,7 @@ function CandyNavItem({
 						: "text-gray-400 hover:text-gray-200 hover:bg-white/[0.04]"
 				} ${collapsed ? "justify-center" : ""}`
 			}
-			title={collapsed ? label : undefined}
+			title={collapsed ? shortLabel ?? label : undefined}
 		>
 			<span className="text-lg shrink-0">{icon}</span>
 			{!collapsed && <span className="truncate flex-1">{label}</span>}
