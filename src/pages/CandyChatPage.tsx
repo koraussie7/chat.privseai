@@ -2,7 +2,12 @@ import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { CandyChat } from "@/components/CandyChat";
 import { CANDY_PRESETS, type CandyCompanion } from "@/data/candyPresets";
-import { chatApi } from "@/lib/config";
+import {
+	chatApi,
+	COLIBRI_ADVERT_ENABLED,
+	COLIBRI_ADVERT_INTERVAL_MS,
+	REGION,
+} from "@/lib/config";
 import { tryByokChat } from "@/lib/byok-chat";
 import { ColibriWASMClient } from "@/lib/colibri-wasm-client";
 import { GirlfriendAIClient } from "@/lib/girlfriend-ai-client";
@@ -15,6 +20,7 @@ import {
 } from "@/lib/companion-memory";
 import { DEFAULT_EMOTION_STATE } from "@/types/character";
 import { useTrystero } from "@/hooks/useTrysteroP2P";
+import { selfId } from "trystero";
 import { getOnDeviceLLM } from "@/lib/on-device-llm-client";
 import { getWebLLM } from "@/lib/webllm-client";
 import { tryNexusChat } from "@/lib/nexus-chat";
@@ -26,7 +32,7 @@ type CompanionProgress = Record<string, { stage: number }>;
 export function CandyChatPage() {
   const { companionId } = useParams<{ companionId?: string }>();
   const navigate = useNavigate();
-  const { colibriPeers } = useTrystero();
+  const { colibriPeers, broadcastColibriGateway } = useTrystero();
 
   const [progress, setProgress] = useState<CompanionProgress>(() => {
     try {
@@ -102,6 +108,46 @@ export function CandyChatPage() {
       colibriClient.getStatus().catch(() => {});
     }
   }, [colibriClient]);
+
+  // Broadcast this peer's Colibri gateway to the P2P mesh when enabled.
+  // Only advertises non-localhost URLs so remote peers can actually connect.
+  useEffect(() => {
+    if (!colibriClient || !broadcastColibriGateway) return;
+    if (!COLIBRI_ADVERT_ENABLED) return;
+
+    const baseUrl = colibriClient.getBaseUrl();
+    if (!baseUrl || baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1")) {
+      return; // Don't advertise localhost — remote peers can't reach it
+    }
+
+    let cancelled = false;
+    const interval = setInterval(() => {
+      if (cancelled) return;
+      broadcastColibriGateway({
+        baseUrl,
+        model: "qwen3-0.6b",
+        region: REGION,
+        peerId: selfId,
+        timestamp: Date.now(),
+        isPublic: true,
+      });
+    }, COLIBRI_ADVERT_INTERVAL_MS);
+
+    // Initial immediate broadcast
+    broadcastColibriGateway({
+      baseUrl,
+      model: "qwen3-0.6b",
+      region: REGION,
+      peerId: selfId,
+      timestamp: Date.now(),
+      isPublic: true,
+    });
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [colibriClient, broadcastColibriGateway]);
 
   // Persist each companion's stage so gallery rewards stay unlocked across visits.
   const handleStageProgress = (newStage: number) => {
