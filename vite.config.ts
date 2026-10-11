@@ -19,7 +19,68 @@ export default defineConfig(({ mode }) => {
   };
 
   /**
+   * Dev-only auth proxy: same-origin `/auth/*` -> the local `server/auth.py`
+   * (default `http://127.0.0.1:4006`, override with AUTH_SERVER_URL).
+   *
+   * Why this exists: the shipped frontend defaults API_URL to
+   * `https://api.privseai.com`, which is the retired backend — `/auth/login`,
+   * `/auth/register` and `/auth/me` there return 404, so sign-in silently
+   * failed in the browser while the new auth server worked over curl.
+   * Same-origin here also sidesteps CORS.
+   */
+  const authProxy = (req, res, next) => {
+    if (!req.url || !req.url.startsWith("/auth")) return next();
+
+    // loadEnv() already read .env; process.env does NOT contain those values
+    // inside Vite's config, so use `env` here or AUTH_SERVER_URL never applies.
+    const target = env.AUTH_SERVER_URL?.trim() || "http://127.0.0.1:4006";
+    // Forward the path verbatim: server/auth.py dispatches on `/auth/...`,
+    // so stripping the `/auth` prefix here would miss every route.
+    const upstreamPath = req.url;
+
+    const chunks = [];
+    req.on("data", (chunk) => chunks.push(chunk));
+    req.on("end", async () => {
+      try {
+        const isBodyless = req.method === "GET" || req.method === "HEAD";
+        const headers = {};
+        for (const [k, v] of Object.entries(req.headers)) {
+          const lk = k.toLowerCase();
+          // KEEP content-length: dropping it makes undici send Transfer-Encoding:
+          // chunked, which stdlib BaseHTTPRequestHandler (server/auth.py) cannot
+          // parse -> "501 Unsupported method" because the body glues onto the
+          // next request line. Forwarding a fixed length keeps the auth server
+          // (Content-Length only, see _read_body) working.
+          if (["host", "connection", "origin"].includes(lk)) continue;
+          headers[k] = v;
+        }
+        const upstreamRes = await fetch(`${target}${upstreamPath}`, {
+          method: req.method,
+          headers,
+          body: isBodyless ? undefined : Buffer.concat(chunks),
+          redirect: "manual",
+        });
+        // Preserve multi-value Set-Cookie (session id) exactly as issued.
+        const setCookie = upstreamRes.headers.getSetCookie?.() ?? [];
+        for (const c of setCookie) res.appendHeader("Set-Cookie", c);
+        res.statusCode = upstreamRes.status;
+        for (const h of ["content-type", "x-quota-limit", "x-quota-remaining", "x-quota-reset"]) {
+          const v = upstreamRes.headers.get(h);
+          if (v) res.setHeader(h, v);
+        }
+        res.end(Buffer.from(await upstreamRes.arrayBuffer()));
+      } catch (err) {
+        res.statusCode = 502;
+        res.setHeader("Content-Type", "application/json");
+        res.end(JSON.stringify({ error: { message: `auth server unreachable: ${String(err)}` } }));
+      }
+    });
+  };
+
+  /**
    * Dev-only proxy: same-origin `/api/openai/*` -> `https://api.openai.com/*`.
+   *
+   * Responsibilities:
    * - Injects the API key server-side (from `.env` OPENAI_API_KEY) so the key
    *   is never shipped to the browser bundle.
    * - Rewrites the JSON body so only OpenAI-compatible fields are forwarded:
@@ -33,7 +94,7 @@ export default defineConfig(({ mode }) => {
     // --- freellmpool quota-gateway passthrough: /freellm/* -> localhost:4005 ---
     // Local dev only; production routes through Caddy (see Caddyfile.production).
     if (req.url.startsWith("/freellm")) {
-      const target = process.env.QUOTA_GATEWAY_URL || "http://127.0.0.1:4005";
+      const target = env.QUOTA_GATEWAY_URL?.trim() || "http://127.0.0.1:4005";
       const upstreamPath = req.url.slice("/freellm".length) || "/";
       const chunks = [];
       req.on("data", (chunk) => chunks.push(chunk));
@@ -187,6 +248,7 @@ export default defineConfig(({ mode }) => {
         // (configureServer must live on a plugin, NOT under `server`.)
         name: "openai-dev-proxy",
         configureServer(server) {
+          server.middlewares.use(authProxy);
           server.middlewares.use(openaiProxy);
         },
       },

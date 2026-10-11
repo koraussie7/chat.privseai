@@ -172,6 +172,20 @@ ToS 관점에서 무료 티어 재방출은 gray area (INTEGRATION 문서의 Cav
 
 ---
 
+### ❌ `janaador0827-commits/simulacra-forge` (악성 의심 — 기각)
+
+**기각 사유**: README는 FastAPI 멀티에이전트 시스템을 선전하지만 저장소에
+**실제 코드가 전혀 없음** (Python 0개, LICENSE 없음). 그 대신:
+
+1. `index.html`이 base64+XOR 난독화 악성 로더 (러시아어 주석, GitHub Pages로
+   cloaked 페이지 배포 목적)
+2. GitHub Actions가 매시간 무의미한 로그 커밋을 생성하는 activity farming
+3. Stars 116인데 fork/issue/PR 0 — star 구매 추정
+
+**절대 클론/링크/방문 금지**. 상세: `INTEGRATION_SIMULACRA-FORGE.md`.
+
+---
+
 ### 검토 대기
 
 - `meshtastic/network-management-client` — LoRa 메시 네트워크 관리 데스크톱 앱.

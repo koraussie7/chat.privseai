@@ -218,8 +218,12 @@ def _public_user(user: dict) -> dict:
 
 
 # ── OAuth providers (Google / GitHub) ──────────────────────────────────────
-def _oauth_profile(provider: str, code: str) -> dict:
+def _oauth_profile(provider: str, code: str, base_url: str | None = None) -> dict:
     """Exchange an OAuth code for a normalized {email, name, picture}."""
+    # The token endpoint validates redirect_uri against the value used in the
+    # authorize step, so callers pass their own origin-aware base. Falls back to
+    # AUTH_PUBLIC_URL for tests / background jobs that have no HTTP context.
+    base = (base_url or AUTH_PUBLIC_URL).rstrip("/")
     if provider == "google":
         tok = urllib.request.urlopen(
             urllib.request.Request(
@@ -229,7 +233,7 @@ def _oauth_profile(provider: str, code: str) -> dict:
                         "code": code,
                         "client_id": GOOGLE_CLIENT_ID,
                         "client_secret": GOOGLE_CLIENT_SECRET,
-                        "redirect_uri": f"{AUTH_PUBLIC_URL}/auth/google/callback",
+                        "redirect_uri": f"{base}/auth/google/callback",
                         "grant_type": "authorization_code",
                     }
                 ).encode(),
@@ -257,7 +261,7 @@ def _oauth_profile(provider: str, code: str) -> dict:
                         "code": code,
                         "client_id": GITHUB_CLIENT_ID,
                         "client_secret": GITHUB_CLIENT_SECRET,
-                        "redirect_uri": f"{AUTH_PUBLIC_URL}/auth/github/callback",
+                        "redirect_uri": f"{base}/auth/github/callback",
                     }
                 ).encode(),
                 headers={
@@ -337,16 +341,41 @@ class Handler(BaseHTTPRequestHandler):
     def _cookie_kwargs(self) -> dict:
         # Cross-site www.privseai.com -> api.privseai.com needs Secure; SameSite=None
         # and a shared Domain=.privseai.com. Local/dev stays a plain host cookie.
-        secure = (
-            self.headers.get("X-Forwarded-Proto", "http") == "https"
-            or AUTH_PUBLIC_URL.startswith("https")
+        # Decide from the ACTUAL request, not just AUTH_PUBLIC_URL, so the
+        # same build works for prod (https behind Caddy) and local dev (http).
+        fwd_proto = self.headers.get("X-Forwarded-Proto", "").split(",")[0].strip().lower()
+        scheme_is_https = (
+            fwd_proto == "https"
+            if fwd_proto
+            else AUTH_PUBLIC_URL.startswith("https")
         )
+        secure = scheme_is_https and self._is_prod_origin()
         kw = {"path": "/"}
         if secure:
             kw["secure"] = True
             kw["samesite"] = "None"
             kw["domain"] = ".privseai.com"
         return kw
+
+    def _self_base(self) -> str:
+        # scheme://host of THIS request. Used for OAuth redirect_uri so the
+        # authorize and token steps always agree, in dev (http://127.0.0.1:4006)
+        # and prod (https://api.privseai.com) alike.
+        host = self.headers.get("Host", "").strip()
+        proto = self.headers.get("X-Forwarded-Proto", "").split(",")[0].strip().lower()
+        if not proto:
+            proto = "https" if AUTH_PUBLIC_URL.startswith("https") else "http"
+        return f"{proto}://{host}" if host else AUTH_PUBLIC_URL
+
+    def _is_prod_origin(self) -> bool:
+        # Only privseai.com hosts get the shared-domain cross-site cookie.
+        # 127.0.0.1 / localhost / LAN IPs stay host-only cookies, which is what
+        # browsers (and curl) require for a non-TLS dev origin to store at all.
+        try:
+            host = (self.headers.get("Host") or "").split(":")[0].strip().lower()
+        except Exception:
+            return False
+        return host.endswith("privseai.com")
 
     def _send_json(self, status: int, payload: dict, extra_headers: dict | None = None):
         body = json.dumps(payload).encode()
@@ -405,3 +434,195 @@ class Handler(BaseHTTPRequestHandler):
         if not user:
             return 401, {"error": "unauthenticated"}
         return 200, {"user": _public_user(user), "quota": _quota_for(user)}
+
+    def do_OPTIONS(self):  # CORS preflight
+        self.send_response(204)
+        for k, v in {**self._cors(), "Allow": "GET, POST, OPTIONS"}.items():
+            self.send_header(k, v)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
+    def _html(self, status: int, html: str):
+        body = html.encode()
+        self.send_response(status)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _popup_done_html(self, email: str, name: str | None) -> str:
+        # Runs inside the OAuth popup on the APP origin, so it may postMessage
+        # to the opener and then close itself.
+        payload = json.dumps(
+            {"type": "privseai-auth", "email": email or "", "name": name or ""}
+        )
+        return (
+            "<!doctype html><meta charset='utf-8'><title>Signing in...</title>"
+            "<body style=\"background:#0b0c14;color:#e5e7eb;font:14px system-ui;"
+            "display:grid;place-items:center;height:100vh;margin:0\">"
+            "<p id='m'>Signing in&hellip;</p><script>"
+            "try{window.opener&&window.opener.postMessage(" + payload + ",'" + APP_URL + "');}catch(e){}"
+            "document.getElementById('m').textContent='Signed in.';"
+            "setTimeout(function(){try{window.close()}catch(e){}},700);"
+            "</script></body>"
+        )
+
+
+    def do_GET(self):
+        from urllib.parse import urlparse, parse_qs
+
+        parsed = urlparse(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        query = parse_qs(parsed.query)
+
+        if path in ("/healthz", "/health"):
+            return self._send_json(200, {"ok": True})
+
+        if path == "/auth/me":
+            status, payload = self._me()
+            return self._send_json(status, payload)
+
+        if path in ("/auth/google", "/auth/github"):
+            provider = path.rsplit("/", 1)[-1]
+            idp = GOOGLE_CLIENT_ID if provider == "google" else GITHUB_CLIENT_ID
+            if not idp:
+                return self._send_json(501, {"error": provider + "_oauth_not_configured"})
+            base = self._self_base()
+            if provider == "google":
+                authorize = (
+                    "https://accounts.google.com/o/oauth2/v2/auth?"
+                    + urllib.parse.urlencode(
+                        {
+                            "client_id": GOOGLE_CLIENT_ID,
+                            "redirect_uri": base + "/auth/google/callback",
+                            "response_type": "code",
+                            "scope": "openid email profile",
+                            "state": secrets.token_urlsafe(16),
+                            "access_type": "online",
+                            "prompt": "select_account",
+                        }
+                    )
+                )
+            else:
+                authorize = (
+                    "https://github.com/login/oauth/authorize?"
+                    + urllib.parse.urlencode(
+                        {
+                            "client_id": GITHUB_CLIENT_ID,
+                            "redirect_uri": base + "/auth/github/callback",
+                            "scope": "read:user user:email",
+                            "state": secrets.token_urlsafe(16),
+                            "allow_signup": "true",
+                        }
+                    )
+                )
+            self.send_response(302)
+            self.send_header("Location", authorize)
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return None
+
+        if path in ("/auth/google/callback", "/auth/github/callback"):
+            provider = path.split("/")[2]
+            code = (query.get("code") or [""])[0]
+            err = (query.get("error") or [""])[0]
+            if err or not code:
+                return self._html(400, "<p>Sign-in cancelled: " + (err or "no code") + "</p>")
+            try:
+                profile = _oauth_profile(provider, code, self._self_base())
+            except Exception as exc:
+                return self._html(502, "<p>Sign-in failed: " + str(exc) + "</p>")
+            email = (profile.get("email") or "").strip().lower()
+            if not email:
+                return self._html(400, "<p>Provider returned no email address.</p>")
+            user = _upsert_user(email, profile.get("name"), profile.get("picture"))
+            return self._html(200, self._popup_done_html(email, user.get("name")))
+
+        return self._send_json(404, {"error": "not_found"})
+
+
+    def do_POST(self):
+        # Refuse chunked bodies: this stdlib server only understands
+        # Content-Length (see _read_body). A chunked request would otherwise
+        # fail obscurely (body glued to the next request line -> 501), so
+        # answer 411 with a clear message instead.
+        if "chunked" in self.headers.get("Transfer-Encoding", "").lower():
+            return self._send_json(
+                411,
+                {
+                    "error": "length_required",
+                    "message": "send Content-Length, not Transfer-Encoding: chunked",
+                },
+            )
+        from urllib.parse import urlparse
+
+        path = urlparse(self.path).path.rstrip("/") or "/"
+
+        if path == "/auth/register":
+            data = self._read_body()
+            email = str(data.get("email") or "").strip().lower()
+            password = str(data.get("password") or "")
+            name = str(data.get("name") or "").strip() or None
+            if not email or not password:
+                return self._send_json(400, {"error": "email_and_password_required"})
+            if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+                return self._send_json(400, {"error": "invalid_email"})
+            if len(password) < 8:
+                return self._send_json(400, {"error": "password_too_short"})
+            if email in USERS:
+                return self._send_json(409, {"error": "email_taken"})
+            salt = secrets.token_hex(16)
+            USERS[email] = {
+                "id": secrets.token_hex(12),
+                "email": email,
+                "name": name or email.split("@")[0],
+                "picture": None,
+                "salt": salt,
+                "hash": _hash_password(password, salt),
+                "created": int(time.time()),
+                "usage": {},
+            }
+            _save_json(USERS_FILE, USERS)
+            token = _mint_session(email, USERS[email]["id"])
+            # The just-registered request carries no Cookie header yet, so read
+            # the user directly instead of re-querying the session.
+            payload = {"user": _public_user(USERS[email]), "quota": _quota_for(USERS[email])}
+            return self._send_json(201, payload, self._set_session_cookie(token))
+
+        if path == "/auth/login":
+            data = self._read_body()
+            email = str(data.get("email") or "").strip().lower()
+            password = str(data.get("password") or "")
+            user = USERS.get(email)
+            if not user or not user.get("hash") or not _verify_password(
+                password, user["salt"], user["hash"]
+            ):
+                return self._send_json(401, {"error": "invalid_credentials"})
+            token = _mint_session(email, user["id"])
+            payload = {"user": _public_user(user), "quota": _quota_for(user)}
+            return self._send_json(200, payload, self._set_session_cookie(token))
+
+        if path == "/auth/logout":
+            token = self._session_token()
+            if token:
+                _revoke_session(token)
+            return self._send_json(200, {"ok": True}, self._clear_cookie())
+
+        return self._send_json(404, {"error": "not_found"})
+
+
+def main() -> None:
+    port = int(os.environ.get("LISTEN_PORT", os.environ.get("AUTH_PORT", "4006")))
+    server = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    print("[auth] listening on :" + str(port) + "  data=" + DATA_DIR, flush=True)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+
+
+if __name__ == "__main__":
+    main()
+
