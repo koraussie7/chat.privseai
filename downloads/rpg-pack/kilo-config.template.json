@@ -1,0 +1,21 @@
+{
+  "model": "ollama/privseai-rpg",
+  "provider": {
+    "ollama": {
+      "options": {
+        "baseURL": "http://localhost:11434"
+      },
+      "models": {
+        "privseai-rpg": {
+          "name": "PrivseAI RPG (Qwen3-4B-RPG-Roleplay-V2 Q4_K_M)",
+          "tool_call": true,
+          "limit": {
+            "context": 8192,
+            "output": 1024
+          }
+        }
+      }
+    }
+  }
+}
+

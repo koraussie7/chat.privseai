@@ -61,6 +61,10 @@
         <p class="guest-info-text">게스트 모드로 접속 중입니다</p>
       </div>
       <div id="room-list" class="room-list"></div>
+      <div class="dl-section">
+        <button id="ai-pack-btn" class="dl-btn">🤖 AI 패키지 <span class="dl-badge">NEW</span></button>
+        <p class="dl-hint">내 PC·폰에 AI + 에이전트 설치</p>
+      </div>
     </aside>
 
     <!-- Main Chat Area -->
@@ -89,6 +93,49 @@
     </main>
   </div>
 </div>
-<script src="app.js?v=7"></script>
+<!-- ===== AI 패키지 다운로드 모달 ===== -->
+<div id="ai-pack-modal" class="modal hidden">
+  <div class="dl-modal-card">
+    <button id="ai-pack-close" class="dl-modal-x" title="닫기">×</button>
+    <div class="dl-modal-head">
+      <div class="dl-modal-icon">🤖</div>
+      <div>
+        <h2>PrivseAI 로컬 AI 패키지</h2>
+        <p>Qwen3-4B-RPG (기본 채팅모델) + Kilo CLI + Bitterbot 에이전트 — 내 기기에서 오프라인 사용</p>
+      </div>
+    </div>
+    <div class="dl-os-row">
+      <button class="dl-os-tab active" data-os="win">🪟 Windows</button>
+      <button class="dl-os-tab" data-os="mac">🍎 macOS·Linux</button>
+      <button class="dl-os-tab" data-os="and">🤖 Android</button>
+    </div>
+    <div class="dl-steps" id="dl-steps-win">
+      <ol>
+        <li><b>패키지 다운로드</b> → <a class="dl-link" href="downloads/privseai-rpg-pack.zip" download>privseai-rpg-pack.zip ⬇</a> 압축해제</li>
+        <li>PowerShell에서 <code>.\install-all.ps1</code> 실행 (Ollama + 모델 2.5GB + Kilo + Bitterbot 자동설치)</li>
+        <li><code>kilo</code> 입력 → <b>bitterbot</b> 선택 → 내 PC 에이전트 사용 시작</li>
+      </ol>
+      <p class="dl-note">개별 파일: <a href="downloads/rpg-pack/install.ps1">install.ps1</a> · <a href="downloads/rpg-pack/kilo-setup.ps1">kilo-setup.ps1</a> · <a href="downloads/rpg-pack/Modelfile-RPG">Modelfile-RPG</a></p>
+    </div>
+    <div class="dl-steps hidden" id="dl-steps-mac">
+      <ol>
+        <li><b>패키지 다운로드</b> → <a class="dl-link" href="downloads/privseai-rpg-pack.zip" download>privseai-rpg-pack.zip ⬇</a> 압축해제</li>
+        <li>터미널에서 <code>chmod +x *.sh &amp;&amp; ./install-all.sh</code> 실행</li>
+        <li><code>kilo</code> 입력 → <b>bitterbot</b> 선택 → 내 Mac/Linux 에이전트 사용 시작</li>
+      </ol>
+      <p class="dl-note">개별 파일: <a href="downloads/rpg-pack/install.sh">install.sh</a> · <a href="downloads/rpg-pack/kilo-setup.sh">kilo-setup.sh</a> · <a href="downloads/rpg-pack/privseai-chat.sh">privseai-chat.sh</a></p>
+    </div>
+    <div class="dl-steps hidden" id="dl-steps-and">
+      <ol>
+        <li>Termux 설치 후 패키지 압축해제 → <code>./install-all-termux.sh</code> 실행 (llama.cpp 빌드 + 2.5GB 모델)</li>
+        <li><code>llama-server … --port 8080</code> 실행 → 폰 브라우저에서 이 채팅을 로컬 백엔드로 사용</li>
+        <li>코딩 에이전트(Kilo)는 무거우니 데스크탑 권장 — 폰은 채팅 우선</li>
+      </ol>
+      <p class="dl-note">개별 파일: <a href="downloads/rpg-pack/install-termux.sh">install-termux.sh</a> · <a href="downloads/rpg-pack/README-KO.md">README-KO</a></p>
+    </div>
+    <p class="dl-spec">모델: Chun121/Qwen3-4B-RPG-Roleplay-V2 · Q4_K_M 2.5GB · ctx 8192 · RAM 8GB(16GB 권장) · 성인콘텐츠 포함(19+)</p>
+  </div>
+</div>
+<script src="app.js?v=8"></script>
 </body>
 </html>

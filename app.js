@@ -640,6 +640,31 @@ messageInput.addEventListener('keydown', (e) => {
 sendBtn.addEventListener('click', handleSend);
 
 // ============ Init ============
+/* ===== AI 패키지 다운로드 모달 ===== */
+(function initAiPackModal() {
+  const btn = document.getElementById('ai-pack-btn');
+  const modal = document.getElementById('ai-pack-modal');
+  if (!btn || !modal) return;
+  const closeBtn = document.getElementById('ai-pack-close');
+  btn.addEventListener('click', () => modal.classList.remove('hidden'));
+  closeBtn?.addEventListener('click', () => modal.classList.add('hidden'));
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') modal.classList.add('hidden'); });
+  const tabs = modal.querySelectorAll('.dl-os-tab');
+  const panes = { win: 'dl-steps-win', mac: 'dl-steps-mac', and: 'dl-steps-and' };
+  // OS 자동선택
+  const ua = navigator.userAgent || '';
+  let auto = 'win';
+  if (/Android/i.test(ua)) auto = 'and';
+  else if (/Mac|Linux/i.test(ua)) auto = 'mac';
+  function select(os) {
+    tabs.forEach((t) => t.classList.toggle('active', t.dataset.os === os));
+    Object.entries(panes).forEach(([k, id]) => document.getElementById(id)?.classList.toggle('hidden', k !== os));
+  }
+  tabs.forEach((t) => t.addEventListener('click', () => select(t.dataset.os)));
+  select(auto);
+})();
+
 (async function init() {
   // Check for guest session in localStorage first
   try {
