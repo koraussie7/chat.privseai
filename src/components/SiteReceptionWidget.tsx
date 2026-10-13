@@ -95,7 +95,7 @@ export function SiteReceptionWidget() {
 				type="button"
 				aria-label="Luna와 대화"
 				onClick={() => setOpen(true)}
-				className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 px-5 py-3 text-sm font-bold text-white shadow-2xl ring-1 ring-white/20 hover:scale-105 transition"
+				className="fixed bottom-4 right-4 max-md:bottom-3 max-md:right-3 z-50 flex items-center gap-2 max-md:gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-indigo-500 px-5 max-md:px-3 py-3 max-md:py-2 text-sm max-md:text-xs font-bold text-white shadow-2xl ring-1 ring-white/20 hover:scale-105 transition max-md:active:scale-95"
 			>
 				<span className="text-lg">🌙</span>
 				<span>Luna에게 물어보기</span>
@@ -104,7 +104,7 @@ export function SiteReceptionWidget() {
 	}
 
 	return (
-		<div className="fixed bottom-5 right-5 z-50 flex h-[520px] w-[360px] flex-col rounded-2xl border border-white/10 bg-[#0a0c14]/95 shadow-2xl backdrop-blur">
+		<div className="fixed bottom-4 right-4 max-md:inset-2 max-md:bottom-2 max-md:left-2 max-md:right-2 z-50 flex h-[520px] max-md:h-[85dvh] w-[360px] max-md:w-auto max-md:max-w-[420px] max-md:mx-auto flex-col rounded-2xl border border-white/10 bg-[#0a0c14]/95 shadow-2xl backdrop-blur">
 			<header className="flex items-center justify-between rounded-t-2xl border-b border-white/5 bg-gradient-to-r from-fuchsia-500/20 to-indigo-500/20 px-4 py-3">
 				<div className="flex items-center gap-2">
 					<span className="text-lg">🌙</span>
