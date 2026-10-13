@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import tailwindcss from "tailwindcss";
 import autoprefixer from "autoprefixer";
 import svgr from "vite-plugin-svgr";
+import { VitePWA } from "vite-plugin-pwa";
 import { resolve } from "node:path";
 
 export default defineConfig(({ mode }) => {
@@ -242,6 +243,51 @@ export default defineConfig(({ mode }) => {
       jsxImportSource: "react",
     },
     plugins: [
+      VitePWA({
+        registerType: "autoUpdate",
+        includeAssets: ["icons/apple-touch-icon.png"],
+        manifest: {
+          name: "PrivseAI World",
+          short_name: "PrivseAI",
+          description: "Decentralized AI companions — P2P, on-device inference, desktop bridge.",
+          theme_color: "#070b13",
+          background_color: "#070b13",
+          display: "standalone",
+          start_url: "/",
+          orientation: "portrait-primary",
+          lang: "ko",
+          categories: ["social", "lifestyle", "productivity"],
+          icons: [
+            { src: "/icons/pwa-192.png", sizes: "192x192", type: "image/png" },
+            { src: "/icons/pwa-512.png", sizes: "512x512", type: "image/png" },
+            {
+              src: "/icons/maskable-512.png",
+              sizes: "512x512",
+              type: "image/png",
+              purpose: "maskable",
+            },
+          ],
+        },
+        workbox: {
+          globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
+          // The main bundle is 6 MB (WebLLM etc.) — raise the precache limit.
+          maximumFileSizeToCacheInBytes: 8 * 1024 * 1024,
+          // Never cache the API or websocket traffic; only static shell.
+          navigateFallback: "/index.html",
+          runtimeCaching: [
+            {
+              // stock images (Unsplash/picsum/wikimedia) — cache-first
+              urlPattern: /^https:\/\/(images\.unsplash\.com|picsum\.photos|upload\.wikimedia\.org)\//,
+              handler: "CacheFirst",
+              options: {
+                cacheName: "privseai-stock-images",
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [200] },
+              },
+            },
+          ],
+        },
+      }),
       svgr(),
       {
         // Dev-only middleware registered as a proper Vite plugin hook.

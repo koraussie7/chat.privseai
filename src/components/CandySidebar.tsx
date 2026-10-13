@@ -117,6 +117,7 @@ export function CandySidebar({ onOpenCreateModal, peerCount = 0, user, onLogout 
 				<CandyNavItem to="/hub" icon="🧠" label="AI Hub" shortLabel="Hub" collapsed={collapsed} />
 				<CandyNavItem to="/marketplace" icon="🛍️" label={t("marketplace.menu")} shortLabel={t("marketplace.shortMenu")} collapsed={collapsed} badge={t("marketplace.newBadge")} />
 				<CandyNavItem to="/integrations" icon="🔌" label="Integrations" shortLabel="Bridge" collapsed={collapsed} />
+				<CandyNavItem to="/onboarding/bitterbot" icon="🤖" label="Desktop Bridge (BYOK)" shortLabel="Bitterbot" collapsed={collapsed} />
 				<a
 					href="https://browserytools.com"
 					target="_blank"

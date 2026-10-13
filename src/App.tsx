@@ -26,6 +26,7 @@ import { LoginPage } from "@/pages/LoginPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { MarketplacePage } from "@/pages/MarketplacePage";
 import { MyNeuroPage } from "@/pages/MyNeuroPage";
+import { BitterbotOnboardingPage } from "@/pages/BitterbotOnboardingPage";
 import { StudioPage } from "@/pages/StudioPage";
 import { useEffect, useState } from "react";
 import { NavLink, Navigate, Route, BrowserRouter as Router, Routes } from "react-router-dom";
@@ -403,6 +404,7 @@ export function App() {
 						<Route path="/pricing" element={<PricingPage onBack={goHome} />} />
 							<Route path="/marketplace" element={<AuthGate><MarketplacePage /></AuthGate>} />
 							<Route path="/integrations" element={<AuthGate><MyNeuroPage /></AuthGate>} />
+						<Route path="/onboarding/bitterbot" element={<BitterbotOnboardingPage onBack={goHome} />} />
 							<Route
 								path="/settings"
 								element={
