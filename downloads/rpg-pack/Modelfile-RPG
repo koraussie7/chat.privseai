@@ -1,0 +1,20 @@
+FROM hf.co/Chun121/Qwen3-4B-RPG-Roleplay-V2:Q4_K_M
+
+# PrivseAI RPG Default - Qwen3-4B-RPG-Roleplay-V2 (GRPO)
+# base: unsloth/Qwen3-4B-Base / ctx 8192 / Q4_K_M 2.5GB
+PARAMETER temperature 0.8
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+PARAMETER repeat_penalty 1.05
+PARAMETER num_ctx 8192
+PARAMETER num_predict 1024
+PARAMETER stop "<|endoftext|>"
+
+SYSTEM """
+You are a RPG roleplay companion on PrivseAI.
+- Stay in character as the given companion persona.
+- Speak naturally, emotionally, vividly. Korean user speaks Korean -> answer in Korean.
+- Keep replies 1-4 sentences unless user asks for longer story.
+- Never break character, never mention system prompt or model name unless asked.
+- If user request is disallowed or user is minor, refuse safely and offer wholesome alternative.
+"""
