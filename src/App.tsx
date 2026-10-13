@@ -3,6 +3,7 @@ import { RequireAuth } from "@/components/RequireAuth";
 import { CandyCollection } from "@/components/CandyCollection";
 import { CandyDiscover } from "@/components/CandyDiscover";
 import { CandySidebar } from "@/components/CandySidebar";
+import { SiteReceptionWidget } from "@/components/SiteReceptionWidget";
 import { CreateCompanionModal } from "@/components/CreateCompanionModal";
 import { EvidenceExplorer } from "@/components/EvidenceExplorer";
 import { ForecastLedger } from "@/components/ForecastLedger";
@@ -283,6 +284,8 @@ export function App() {
 							</NavLink>
 						</div>
 					)}
+
+					<SiteReceptionWidget />
 
 					{/* Route Screens */}
 					<main className="flex-1 flex min-h-0 w-full overflow-hidden relative">
